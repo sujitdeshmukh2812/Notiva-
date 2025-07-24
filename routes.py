@@ -680,7 +680,17 @@ def admin_academic():
         abort(403)
     
     courses = Course.query.all()
-    return render_template('admin/academic_management.html', courses=courses)
+    
+    # Calculate statistics
+    total_years = Year.query.count()
+    total_semesters = Semester.query.count()
+    total_subjects = Subject.query.count()
+    
+    return render_template('admin/academic_management.html', 
+                         courses=courses,
+                         total_years=total_years,
+                         total_semesters=total_semesters,
+                         total_subjects=total_subjects)
 
 @app.route('/admin/create_course', methods=['POST'])
 @login_required
@@ -790,6 +800,87 @@ def create_subject():
     db.session.commit()
     
     flash(f'Subject "{name}" created successfully!', 'success')
+    return redirect(url_for('admin_academic'))
+
+# DELETE routes for academic CRUD
+@app.route('/admin/delete_course/<int:course_id>')
+@login_required
+def delete_course(course_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    course = Course.query.get_or_404(course_id)
+    
+    # Check if course has materials
+    material_count = Material.query.join(Subject).join(Semester).join(Year).filter(Year.course_id == course_id).count()
+    if material_count > 0:
+        flash(f'Cannot delete course "{course.name}". It contains {material_count} materials.', 'error')
+        return redirect(url_for('admin_academic'))
+    
+    db.session.delete(course)
+    db.session.commit()
+    
+    flash(f'Course "{course.name}" deleted successfully!', 'success')
+    return redirect(url_for('admin_academic'))
+
+@app.route('/admin/delete_year/<int:year_id>')
+@login_required
+def delete_year(year_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    year = Year.query.get_or_404(year_id)
+    
+    # Check if year has materials
+    material_count = Material.query.join(Subject).join(Semester).filter(Semester.year_id == year_id).count()
+    if material_count > 0:
+        flash(f'Cannot delete year "{year.name}". It contains {material_count} materials.', 'error')
+        return redirect(url_for('admin_academic'))
+    
+    db.session.delete(year)
+    db.session.commit()
+    
+    flash(f'Year "{year.name}" deleted successfully!', 'success')
+    return redirect(url_for('admin_academic'))
+
+@app.route('/admin/delete_semester/<int:semester_id>')
+@login_required
+def delete_semester(semester_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    semester = Semester.query.get_or_404(semester_id)
+    
+    # Check if semester has materials
+    material_count = Material.query.join(Subject).filter(Subject.semester_id == semester_id).count()
+    if material_count > 0:
+        flash(f'Cannot delete semester "{semester.name}". It contains {material_count} materials.', 'error')
+        return redirect(url_for('admin_academic'))
+    
+    db.session.delete(semester)
+    db.session.commit()
+    
+    flash(f'Semester "{semester.name}" deleted successfully!', 'success')
+    return redirect(url_for('admin_academic'))
+
+@app.route('/admin/delete_subject/<int:subject_id>')
+@login_required
+def delete_subject(subject_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    subject = Subject.query.get_or_404(subject_id)
+    
+    # Check if subject has materials
+    material_count = Material.query.filter_by(subject_id=subject_id).count()
+    if material_count > 0:
+        flash(f'Cannot delete subject "{subject.name}". It contains {material_count} materials.', 'error')
+        return redirect(url_for('admin_academic'))
+    
+    db.session.delete(subject)
+    db.session.commit()
+    
+    flash(f'Subject "{subject.name}" deleted successfully!', 'success')
     return redirect(url_for('admin_academic'))
 
 @app.route('/admin/users')

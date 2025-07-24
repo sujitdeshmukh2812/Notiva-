@@ -92,7 +92,7 @@
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h3 class="text-success">{{ courses | sum(attribute='years') | length }}</h3>
+                    <h3 class="text-success">{{ total_years }}</h3>
                     <p class="mb-0">Years</p>
                 </div>
             </div>
@@ -100,7 +100,7 @@
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h3 class="text-warning">{{ courses | map(attribute='years') | sum(attribute='semesters') | length }}</h3>
+                    <h3 class="text-warning">{{ total_semesters }}</h3>
                     <p class="mb-0">Semesters</p>
                 </div>
             </div>
@@ -108,7 +108,7 @@
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h3 class="text-info">{{ courses | map(attribute='years') | sum(attribute='semesters') | sum(attribute='subjects') | length }}</h3>
+                    <h3 class="text-info">{{ total_subjects }}</h3>
                     <p class="mb-0">Subjects</p>
                 </div>
             </div>
