@@ -1,0 +1,288 @@
+{% extends "layout.html" %}
+
+{% block title %}Doubts & Questions - Notiva{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-question-circle me-2 text-primary"></i>My Doubts
+                    </h2>
+                    <p class="text-light mb-0">Get instant AI-powered answers to your academic questions</p>
+                </div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#askDoubtModal">
+                    <i class="fas fa-plus me-2"></i>Ask New Doubt
+                </button>
+            </div>
+            
+            <!-- Doubts List -->
+            {% if doubts %}
+                <div class="accordion" id="doubtsAccordion">
+                    {% for doubt in doubts %}
+                        <div class="accordion-item mb-3 animate-slide-up" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" 
+                                        type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#doubt{{ doubt.id }}">
+                                    <div class="d-flex justify-content-between w-100 me-3">
+                                        <div>
+                                            <strong>{{ doubt.title }}</strong>
+                                            <div class="text-muted small mt-1">
+                                                <i class="fas fa-calendar me-1"></i>{{ doubt.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                                {% if doubt.subject_id %}
+                                                    <i class="fas fa-book ms-3 me-1"></i>{{ doubt.subject_ref.name }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            {% if doubt.is_answered %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check me-1"></i>Answered
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock me-1"></i>Pending
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="doubt{{ doubt.id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
+                                 data-bs-parent="#doubtsAccordion">
+                                <div class="accordion-body">
+                                    <!-- Question -->
+                                    <div class="mb-4">
+                                        <h6 class="text-primary">
+                                            <i class="fas fa-question me-2"></i>Your Question:
+                                        </h6>
+                                        <p class="text-light">{{ doubt.question }}</p>
+                                    </div>
+                                    
+                                    <!-- Answer -->
+                                    {% if doubt.is_answered and doubt.answer %}
+                                        <div class="answer-section">
+                                            <h6 class="text-success">
+                                                <i class="fas fa-robot me-2"></i>AI Answer:
+                                                <small class="text-muted">
+                                                    {{ doubt.answered_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                                </small>
+                                            </h6>
+                                            <div class="answer-content p-3 border rounded">
+                                                {{ doubt.answer|safe }}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-hourglass-half text-warning"></i>
+                                            <p class="text-light mt-2 mb-0">Answer is being processed...</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-5">
+                    <div class="card glass-effect">
+                        <div class="card-body py-5">
+                            <i class="fas fa-question-circle text-muted mb-4" style="font-size: 4rem; opacity: 0.3;"></i>
+                            <h3 class="text-light mb-3">No Doubts Asked Yet</h3>
+                            <p class="text-light mb-4">
+                                Have questions about your studies? Our AI assistant is here to help!<br>
+                                Get instant, accurate answers to your academic questions.
+                            </p>
+                            
+                            <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#askDoubtModal">
+                                <i class="fas fa-question-circle me-2"></i>Ask Your First Doubt
+                            </button>
+                            
+                            <!-- Benefits -->
+                            <div class="mt-5">
+                                <h5 class="text-light mb-3">Why Use Our AI Doubt System?</h5>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <div class="text-center">
+                                            <i class="fas fa-bolt text-warning mb-2" style="font-size: 2rem;"></i>
+                                            <h6>Instant Answers</h6>
+                                            <small class="text-light">Get immediate responses to your questions</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="text-center">
+                                            <i class="fas fa-brain text-info mb-2" style="font-size: 2rem;"></i>
+                                            <h6>AI-Powered</h6>
+                                            <small class="text-light">Advanced AI understands your academic context</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="text-center">
+                                            <i class="fas fa-clock text-success mb-2" style="font-size: 2rem;"></i>
+                                            <h6>24/7 Available</h6>
+                                            <small class="text-light">Ask questions anytime, day or night</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Tips -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Tips for Better Answers</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Be specific about your question
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Mention the subject if relevant
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Include context when needed
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Use clear, simple language
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Popular Subjects -->
+            {% if subjects %}
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-book me-2"></i>Ask About These Subjects</h6>
+                    </div>
+                    <div class="card-body">
+                        {% for subject in subjects[:8] %}
+                            <button class="btn btn-outline-primary btn-sm me-1 mb-2" 
+                                    onclick="selectSubject('{{ subject.name }}', '{{ subject.id }}')">
+                                {{ subject.name }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Ask Doubt Modal -->
+<div class="modal fade" id="askDoubtModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="fas fa-question-circle me-2 text-primary"></i>Ask a New Doubt
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('ask_doubt') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modalTitle" class="form-label">
+                            <i class="fas fa-heading me-1"></i>Question Title
+                        </label>
+                        <input type="text" class="form-control" id="modalTitle" name="title" required
+                               placeholder="Brief title for your question...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="modalSubject" class="form-label">
+                            <i class="fas fa-book me-1"></i>Subject (Optional)
+                        </label>
+                        <select class="form-select" id="modalSubject" name="subject_id">
+                            <option value="">Select Subject</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="modalQuestion" class="form-label">
+                            <i class="fas fa-question me-1"></i>Your Question
+                        </label>
+                        <textarea class="form-control" id="modalQuestion" name="question" rows="4" required
+                                  placeholder="Describe your question in detail..."></textarea>
+                        <div class="form-text">Be as specific as possible for better answers</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Question
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function selectSubject(subjectName, subjectId) {
+    const modal = new bootstrap.Modal(document.getElementById('askDoubtModal'));
+    document.getElementById('modalSubject').value = subjectId;
+    document.getElementById('modalTitle').placeholder = `Ask about ${subjectName}...`;
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-expand first doubt if exists
+    const firstDoubt = document.querySelector('.accordion-item');
+    if (firstDoubt) {
+        const firstButton = firstDoubt.querySelector('.accordion-button');
+        const firstCollapse = firstDoubt.querySelector('.accordion-collapse');
+        firstButton.classList.remove('collapsed');
+        firstCollapse.classList.add('show');
+    }
+    
+    // Form validation
+    const form = document.querySelector('#askDoubtModal form');
+    form.addEventListener('submit', function(e) {
+        const title = document.getElementById('modalTitle').value.trim();
+        const question = document.getElementById('modalQuestion').value.trim();
+        
+        if (!title || !question) {
+            e.preventDefault();
+            alert('Please fill in both title and question fields.');
+            return;
+        }
+        
+        if (title.length < 5) {
+            e.preventDefault();
+            alert('Title should be at least 5 characters long.');
+            return;
+        }
+        
+        if (question.length < 10) {
+            e.preventDefault();
+            alert('Question should be at least 10 characters long.');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,314 @@
+{% extends "layout.html" %}
+
+{% block title %}Admin Dashboard - Notiva{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Admin Navigation -->
+    <div class="admin-nav">
+        <ul class="nav nav-pills justify-content-center">
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('admin_dashboard') }}">
+                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_notes') }}">
+                    <i class="fas fa-file-alt me-1"></i>Notes Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_doubts') }}">
+                    <i class="fas fa-question-circle me-1"></i>Doubts
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_ads') }}">
+                    <i class="fas fa-bullhorn me-1"></i>Ads Manager
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_academic') }}">
+                    <i class="fas fa-university me-1"></i>Academic
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_users') }}">
+                    <i class="fas fa-users me-1"></i>Users
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                    <i class="fas fa-chart-bar me-1"></i>Analytics
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-tachometer-alt me-2 text-primary"></i>Admin Dashboard
+            </h2>
+            <p class="text-light mb-0">Overview of Notiva platform statistics and activities</p>
+        </div>
+        <div class="text-muted">
+            <i class="fas fa-clock me-1"></i>
+            {{ moment().format('MMMM DD, YYYY') }}
+        </div>
+    </div>
+
+    <!-- Statistics Overview -->
+    <div class="row mb-5">
+        <div class="col-md-3 mb-4">
+            <div class="stats-card">
+                <div class="stats-number">{{ stats.total_users }}</div>
+                <div class="stats-label">Total Users</div>
+                <div class="progress mt-2" style="height: 3px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="stats-card">
+                <div class="stats-number">{{ stats.total_materials }}</div>
+                <div class="stats-label">Study Materials</div>
+                <div class="progress mt-2" style="height: 3px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: 85%"></div>
+                </div>
+                <small class="text-muted">{{ stats.approved_materials }} approved</small>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="stats-card">
+                <div class="stats-number">{{ stats.pending_materials }}</div>
+                <div class="stats-label">Pending Reviews</div>
+                <div class="progress mt-2" style="height: 3px;">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: 60%"></div>
+                </div>
+                {% if stats.pending_materials > 0 %}
+                    <a href="{{ url_for('admin_notes', status='pending') }}" class="btn btn-sm btn-warning mt-2">
+                        Review Now
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="stats-card">
+                <div class="stats-number">{{ stats.total_downloads }}</div>
+                <div class="stats-label">Total Downloads</div>
+                <div class="progress mt-2" style="height: 3px;">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: 90%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Stats -->
+    <div class="row mb-5">
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-success">{{ stats.total_doubts }}</h3>
+                    <p class="mb-0">Total Doubts</p>
+                    <small class="text-light">{{ stats.unanswered_doubts }} unanswered</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-warning">{{ stats.total_ads }}</h3>
+                    <p class="mb-0">Total Ads</p>
+                    <small class="text-light">{{ stats.active_ads }} active</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-info">{{ (stats.approved_materials / stats.total_materials * 100) if stats.total_materials > 0 else 0 | round(1) }}%</h3>
+                    <p class="mb-0">Approval Rate</p>
+                    <small class="text-light">Material approval percentage</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="row">
+        <!-- Recent Materials -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>Recent Materials
+                    </h6>
+                    <a href="{{ url_for('admin_notes') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_materials %}
+                        {% for material in recent_materials %}
+                            <div class="d-flex justify-content-between align-items-center {% if not loop.last %}border-bottom pb-2 mb-2{% endif %}">
+                                <div>
+                                    <div class="fw-bold">{{ material.original_filename[:30] }}{% if material.original_filename|length > 30 %}...{% endif %}</div>
+                                    <small class="text-light">by {{ material.uploader.name }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-{{ 'success' if material.status == 'approved' else 'warning' if material.status == 'pending' else 'danger' }}">
+                                        {{ material.status.title() }}
+                                    </span>
+                                    <div><small class="text-muted">{{ material.uploaded_at.strftime('%m/%d') }}</small></div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-file-alt fa-2x mb-2"></i>
+                            <p class="mb-0">No recent materials</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Doubts -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle me-2"></i>Recent Doubts
+                    </h6>
+                    <a href="{{ url_for('admin_doubts') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_doubts %}
+                        {% for doubt in recent_doubts %}
+                            <div class="d-flex justify-content-between align-items-center {% if not loop.last %}border-bottom pb-2 mb-2{% endif %}">
+                                <div>
+                                    <div class="fw-bold">{{ doubt.title[:25] }}{% if doubt.title|length > 25 %}...{% endif %}</div>
+                                    <small class="text-light">by {{ doubt.user.name }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-{{ 'success' if doubt.is_answered else 'warning' }}">
+                                        {{ 'Answered' if doubt.is_answered else 'Pending' }}
+                                    </span>
+                                    <div><small class="text-muted">{{ doubt.created_at.strftime('%m/%d') }}</small></div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-question-circle fa-2x mb-2"></i>
+                            <p class="mb-0">No recent doubts</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Users -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-users me-2"></i>Recent Users
+                    </h6>
+                    <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_users %}
+                        {% for user in recent_users %}
+                            <div class="d-flex justify-content-between align-items-center {% if not loop.last %}border-bottom pb-2 mb-2{% endif %}">
+                                <div>
+                                    <div class="fw-bold">{{ user.name }}</div>
+                                    <small class="text-light">{{ user.email }}</small>
+                                </div>
+                                <div class="text-end">
+                                    {% if user.is_admin %}
+                                        <span class="badge bg-primary">Admin</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">User</span>
+                                    {% endif %}
+                                    <div><small class="text-muted">{{ user.created_at.strftime('%m/%d') }}</small></div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-users fa-2x mb-2"></i>
+                            <p class="mb-0">No recent users</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_notes', status='pending') }}" class="btn btn-warning w-100">
+                                <i class="fas fa-clock me-2"></i>
+                                Review Pending Materials
+                                <span class="badge bg-light text-dark ms-2">{{ stats.pending_materials }}</span>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_doubts') }}" class="btn btn-info w-100">
+                                <i class="fas fa-question-circle me-2"></i>
+                                Manage Doubts
+                                <span class="badge bg-light text-dark ms-2">{{ stats.unanswered_doubts }}</span>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_ads') }}" class="btn btn-success w-100">
+                                <i class="fas fa-bullhorn me-2"></i>
+                                Create New Ad
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_analytics') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                View Analytics
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+// Animate stats on page load
+document.addEventListener('DOMContentLoaded', function() {
+    animateStats();
+    
+    // Auto-refresh dashboard every 5 minutes
+    setInterval(function() {
+        // You can implement auto-refresh logic here
+        console.log('Dashboard auto-refresh check');
+    }, 300000); // 5 minutes
+});
+</script>
+{% endblock %}

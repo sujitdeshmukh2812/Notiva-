@@ -1,0 +1,317 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ material.original_filename }} - Notiva{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Material Details -->
+            <div class="card animate-slide-up">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h3 class="mb-1">{{ material.original_filename }}</h3>
+                            <div class="material-meta">
+                                <span><i class="fas fa-user"></i> {{ material.uploader.name }}</span>
+                                <span><i class="fas fa-calendar"></i> {{ material.uploaded_at.strftime('%B %d, %Y') }}</span>
+                                <span><i class="fas fa-file"></i> {{ material.file_type.upper() }}</span>
+                                <span><i class="fas fa-hdd"></i> {{ "%.2f"|format(material.file_size / 1024 / 1024) }} MB</span>
+                            </div>
+                        </div>
+                        {% if current_user.is_authenticated %}
+                            <button class="btn btn-outline-warning bookmark-btn" data-material-id="{{ material.id }}">
+                                <i class="fas fa-bookmark {% if is_bookmarked %}bookmarked{% endif %}"></i>
+                                {% if is_bookmarked %}Bookmarked{% else %}Bookmark{% endif %}
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Academic Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong><i class="fas fa-graduation-cap me-1"></i>Course:</strong><br>
+                            <span class="text-light">{{ material.course or material.course_ref.name if material.course_ref else 'Unknown' }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong><i class="fas fa-calendar me-1"></i>Year:</strong><br>
+                            <span class="text-light">{{ material.year or material.year_ref.name if material.year_ref else 'Unknown' }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong><i class="fas fa-calendar-alt me-1"></i>Semester:</strong><br>
+                            <span class="text-light">{{ material.semester or material.semester_ref.name if material.semester_ref else 'Unknown' }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong><i class="fas fa-book me-1"></i>Subject:</strong><br>
+                            <span class="text-light">{{ material.subject or material.subject_ref.name if material.subject_ref else 'Unknown' }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Description -->
+                    {% if material.description %}
+                        <div class="mb-4">
+                            <h5><i class="fas fa-align-left me-2"></i>Description</h5>
+                            <p class="text-light">{{ material.description }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                                <div class="h4 text-primary mb-1">{{ material.download_count }}</div>
+                                <small class="text-light">Downloads</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                                <div class="h4 text-success mb-1">{{ material.view_count }}</div>
+                                <small class="text-light">Views</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                                <div class="h4 text-warning mb-1">
+                                    {% if material.average_rating > 0 %}
+                                        {{ "%.1f"|format(material.average_rating) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </div>
+                                <small class="text-light">Average Rating</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('download', material_id=material.id) }}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-download me-2"></i>Download Material
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login to Download
+                            </a>
+                        {% endif %}
+                        <a href="{{ url_for('browse') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Browse
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rating Section -->
+            {% if current_user.is_authenticated %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-star me-2"></i>Rate This Material</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('rate_material', material_id=material.id) }}">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Your Rating:</label>
+                                    <div class="rating-input mb-3">
+                                        {% for i in range(1, 6) %}
+                                            <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" 
+                                                   {% if user_rating and user_rating.rating == i %}checked{% endif %}>
+                                            <label for="star{{ i }}" class="star-label">
+                                                <i class="fas fa-star"></i>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="comment" class="form-label">Comment (Optional):</label>
+                                    <textarea class="form-control" id="comment" name="comment" rows="2" 
+                                              placeholder="Share your thoughts about this material...">{% if user_rating %}{{ user_rating.comment }}{% endif %}</textarea>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-star me-2"></i>
+                                {% if user_rating %}Update Rating{% else %}Submit Rating{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Reviews Section -->
+            {% if ratings %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comments me-2"></i>
+                            Reviews ({{ ratings|length }})
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% for rating in ratings %}
+                            <div class="review-item {% if not loop.last %}border-bottom{% endif %} pb-3 {% if not loop.last %}mb-3{% endif %}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>{{ rating.user.name }}</strong>
+                                        <div class="rating-stars text-warning">
+                                            {% for i in range(5) %}
+                                                {% if i < rating.rating %}
+                                                    <i class="fas fa-star"></i>
+                                                {% else %}
+                                                    <i class="far fa-star"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <small class="text-light">{{ rating.created_at.strftime('%b %d, %Y') }}</small>
+                                </div>
+                                {% if rating.comment %}
+                                    <p class="text-light mt-2 mb-0">{{ rating.comment }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            {% if current_user.is_authenticated %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('upload') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-upload me-2"></i>Upload Material
+                            </a>
+                            <a href="{{ url_for('doubts') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-question-circle me-2"></i>Ask a Doubt
+                            </a>
+                            <a href="{{ url_for('bookmarks') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-bookmark me-2"></i>My Bookmarks
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Related Materials -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-link me-2"></i>Related Materials</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-light mb-3">Find more materials from the same subject:</p>
+                    <a href="{{ url_for('browse', subject=material.subject or material.subject_ref.name if material.subject_ref else '') }}" 
+                       class="btn btn-outline-primary btn-sm w-100">
+                        <i class="fas fa-search me-2"></i>Browse {{ material.subject or material.subject_ref.name if material.subject_ref else 'Subject' }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Bookmark functionality
+    const bookmarkBtn = document.querySelector('.bookmark-btn');
+    if (bookmarkBtn) {
+        bookmarkBtn.addEventListener('click', function() {
+            const materialId = this.getAttribute('data-material-id');
+            const icon = this.querySelector('i');
+            
+            fetch(`/toggle_bookmark/${materialId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.bookmarked) {
+                    icon.classList.add('bookmarked');
+                    this.innerHTML = '<i class="fas fa-bookmark bookmarked"></i> Bookmarked';
+                } else {
+                    icon.classList.remove('bookmarked');
+                    this.innerHTML = '<i class="fas fa-bookmark"></i> Bookmark';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    }
+    
+    // Star rating interaction
+    const starLabels = document.querySelectorAll('.star-label');
+    starLabels.forEach((label, index) => {
+        label.addEventListener('mouseover', function() {
+            // Highlight stars up to current one
+            for (let i = 0; i <= index; i++) {
+                starLabels[i].classList.add('hover');
+            }
+            for (let i = index + 1; i < starLabels.length; i++) {
+                starLabels[i].classList.remove('hover');
+            }
+        });
+        
+        label.addEventListener('mouseout', function() {
+            starLabels.forEach(star => star.classList.remove('hover'));
+        });
+    });
+});
+</script>
+
+<style>
+.rating-input {
+    display: flex;
+    gap: 5px;
+}
+
+.rating-input input[type="radio"] {
+    display: none;
+}
+
+.star-label {
+    font-size: 1.5rem;
+    color: #6c757d;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star-label:hover,
+.star-label.hover {
+    color: #ffc107;
+}
+
+.rating-input input[type="radio"]:checked ~ .star-label,
+.rating-input input[type="radio"]:checked + .star-label {
+    color: #ffc107;
+}
+
+.rating-input input[type="radio"]:checked + .star-label ~ .star-label {
+    color: #6c757d;
+}
+
+/* Fix for proper star selection */
+.rating-input input[type="radio"]:checked + .star-label,
+.rating-input input[type="radio"]:checked + .star-label ~ .star-label {
+    color: #ffc107;
+}
+
+.rating-input input[type="radio"]:not(:checked) + .star-label ~ .star-label {
+    color: #6c757d;
+}
+
+.bookmarked {
+    color: #ffc107 !important;
+}
+</style>
+{% endblock %}

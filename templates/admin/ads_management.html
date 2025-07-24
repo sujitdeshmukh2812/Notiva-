@@ -1,0 +1,464 @@
+{% extends "layout.html" %}
+
+{% block title %}Ads Management - Notiva Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Admin Navigation -->
+    <div class="admin-nav">
+        <ul class="nav nav-pills justify-content-center">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_notes') }}">
+                    <i class="fas fa-file-alt me-1"></i>Notes Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_doubts') }}">
+                    <i class="fas fa-question-circle me-1"></i>Doubts
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('admin_ads') }}">
+                    <i class="fas fa-bullhorn me-1"></i>Ads Manager
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_academic') }}">
+                    <i class="fas fa-university me-1"></i>Academic
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_users') }}">
+                    <i class="fas fa-users me-1"></i>Users
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                    <i class="fas fa-chart-bar me-1"></i>Analytics
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-bullhorn me-2 text-primary"></i>Ads Management
+            </h2>
+            <p class="text-light mb-0">Create and manage platform advertisements</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAdModal">
+            <i class="fas fa-plus me-2"></i>Create New Ad
+        </button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ ads | length }}</h3>
+                    <p class="mb-0">Total Ads</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">{{ ads | selectattr('is_active', 'equalto', True) | list | length }}</h3>
+                    <p class="mb-0">Active Ads</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ ads | sum(attribute='click_count') }}</h3>
+                    <p class="mb-0">Total Clicks</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info">{{ ads | sum(attribute='view_count') }}</h3>
+                    <p class="mb-0">Total Views</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Search -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search ads by title or content...">
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="statusFilter" id="filterAll" value="all" checked>
+                        <label class="btn btn-outline-primary" for="filterAll">All</label>
+                        
+                        <input type="radio" class="btn-check" name="statusFilter" id="filterActive" value="active">
+                        <label class="btn btn-outline-success" for="filterActive">Active</label>
+                        
+                        <input type="radio" class="btn-check" name="statusFilter" id="filterInactive" value="inactive">
+                        <label class="btn btn-outline-secondary" for="filterInactive">Inactive</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ads Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if ads %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ad Details</th>
+                                <th>Placement</th>
+                                <th>Status</th>
+                                <th>Performance</th>
+                                <th>Created</th>
+                                <th width="200px">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ad in ads %}
+                                <tr data-status="{{ 'active' if ad.is_active else 'inactive' }}">
+                                    <td>
+                                        <div>
+                                            <strong>{{ ad.title }}</strong>
+                                            <div class="small text-light mt-1">
+                                                {{ ad.content[:100] }}{% if ad.content|length > 100 %}...{% endif %}
+                                            </div>
+                                            {% if ad.image_url %}
+                                                <div class="small text-info mt-1">
+                                                    <i class="fas fa-image me-1"></i>Has Image
+                                                </div>
+                                            {% endif %}
+                                            {% if ad.link_url %}
+                                                <div class="small text-warning mt-1">
+                                                    <i class="fas fa-external-link-alt me-1"></i>
+                                                    <a href="{{ ad.link_url }}" target="_blank" class="text-warning text-decoration-none">
+                                                        {{ ad.link_url[:40] }}{% if ad.link_url|length > 40 %}...{% endif %}
+                                                    </a>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if ad.placement == 'banner' else 'info' if ad.placement == 'sidebar' else 'warning' }}">
+                                            {{ ad.placement.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge status-badge bg-{{ 'success' if ad.is_active else 'secondary' }}">
+                                            {{ 'Active' if ad.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            <div><i class="fas fa-eye me-1"></i>{{ ad.view_count }} views</div>
+                                            <div><i class="fas fa-mouse-pointer me-1"></i>{{ ad.click_count }} clicks</div>
+                                            {% if ad.view_count > 0 %}
+                                                <div class="text-success">
+                                                    <i class="fas fa-chart-line me-1"></i>
+                                                    {{ "%.1f"|format(ad.click_count / ad.view_count * 100) }}% CTR
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            {{ ad.created_at.strftime('%m/%d/%Y') }}<br>
+                                            <span class="text-muted">{{ ad.creator.name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical w-100" role="group">
+                                            <button class="btn btn-{{ 'warning' if ad.is_active else 'success' }} btn-sm toggle-ad-btn" 
+                                                    data-ad-id="{{ ad.id }}">
+                                                <i class="fas fa-{{ 'pause' if ad.is_active else 'play' }} me-1"></i>
+                                                {{ 'Deactivate' if ad.is_active else 'Activate' }}
+                                            </button>
+                                            <button class="btn btn-info btn-sm" 
+                                                    onclick="editAd({{ ad.id }}, '{{ ad.title|e }}', '{{ ad.content|e }}', '{{ ad.image_url or '' }}', '{{ ad.link_url or '' }}', '{{ ad.placement }}')">
+                                                <i class="fas fa-edit me-1"></i>Edit
+                                            </button>
+                                            <button class="btn btn-outline-primary btn-sm" 
+                                                    onclick="previewAd('{{ ad.title|e }}', '{{ ad.content|e }}', '{{ ad.image_url or '' }}', '{{ ad.link_url or '' }}', '{{ ad.placement }}')">
+                                                <i class="fas fa-eye me-1"></i>Preview
+                                            </button>
+                                            <a href="{{ url_for('delete_ad', ad_id=ad.id) }}" class="btn btn-danger btn-sm" 
+                                               data-confirm="Are you sure you want to delete this ad? This action cannot be undone.">
+                                                <i class="fas fa-trash me-1"></i>Delete
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-bullhorn text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                    <h4 class="mt-3 text-light">No Ads Created</h4>
+                    <p class="text-light">Create your first advertisement to start promoting content.</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAdModal">
+                        <i class="fas fa-plus me-2"></i>Create First Ad
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Ad Modal -->
+<div class="modal fade" id="createAdModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="fas fa-bullhorn me-2 text-primary"></i>
+                    <span id="modalTitle">Create New Ad</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_ad') }}" id="adForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="adTitle" class="form-label">
+                                    <i class="fas fa-heading me-1"></i>Ad Title
+                                </label>
+                                <input type="text" class="form-control" id="adTitle" name="title" required
+                                       placeholder="Enter ad title...">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="adContent" class="form-label">
+                                    <i class="fas fa-align-left me-1"></i>Ad Content
+                                </label>
+                                <textarea class="form-control" id="adContent" name="content" rows="4" required
+                                          placeholder="Enter ad content/description..."></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="adImageUrl" class="form-label">
+                                    <i class="fas fa-image me-1"></i>Image URL (Optional)
+                                </label>
+                                <input type="url" class="form-control" id="adImageUrl" name="image_url"
+                                       placeholder="https://example.com/image.jpg">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="adLinkUrl" class="form-label">
+                                    <i class="fas fa-external-link-alt me-1"></i>Link URL (Optional)
+                                </label>
+                                <input type="url" class="form-control" id="adLinkUrl" name="link_url"
+                                       placeholder="https://example.com/landing-page">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="adPlacement" class="form-label">
+                                    <i class="fas fa-map-marker-alt me-1"></i>Placement
+                                </label>
+                                <select class="form-select" id="adPlacement" name="placement" required>
+                                    <option value="banner">Banner (Homepage)</option>
+                                    <option value="sidebar" selected>Sidebar</option>
+                                    <option value="popup">Popup</option>
+                                </select>
+                                <div class="form-text">Choose where the ad will be displayed</div>
+                            </div>
+                            
+                            <!-- Preview Area -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-eye me-1"></i>Live Preview
+                                    </h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div id="adPreview" class="ad-preview text-center">
+                                        <div class="text-muted">
+                                            <i class="fas fa-bullhorn fa-2x mb-2"></i>
+                                            <p class="mb-0 small">Fill in the form to see preview</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        <span id="saveButtonText">Create Ad</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2 text-info"></i>Ad Preview
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="fullAdPreview" class="text-center"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+function editAd(id, title, content, imageUrl, linkUrl, placement) {
+    // Populate form for editing
+    document.getElementById('modalTitle').textContent = 'Edit Ad';
+    document.getElementById('saveButtonText').textContent = 'Update Ad';
+    document.getElementById('adTitle').value = title;
+    document.getElementById('adContent').value = content;
+    document.getElementById('adImageUrl').value = imageUrl;
+    document.getElementById('adLinkUrl').value = linkUrl;
+    document.getElementById('adPlacement').value = placement;
+    
+    // Change form action
+    document.getElementById('adForm').action = `/admin/edit_ad/${id}`;
+    
+    // Show modal
+    new bootstrap.Modal(document.getElementById('createAdModal')).show();
+    
+    // Update preview
+    updatePreview();
+}
+
+function previewAd(title, content, imageUrl, linkUrl, placement) {
+    const previewHtml = generateAdHtml(title, content, imageUrl, linkUrl, placement);
+    document.getElementById('fullAdPreview').innerHTML = previewHtml;
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+}
+
+function generateAdHtml(title, content, imageUrl, linkUrl, placement) {
+    let adClass = placement === 'banner' ? 'ad-banner' : 'ad-sidebar';
+    
+    let html = `<div class="${adClass}">`;
+    
+    if (imageUrl) {
+        html += `<img src="${imageUrl}" alt="${title}" class="img-fluid mb-3" style="max-height: ${placement === 'banner' ? '200px' : '100px'};">`;
+    }
+    
+    html += `<h${placement === 'banner' ? '4' : '6'}>${title}</h${placement === 'banner' ? '4' : '6'}>`;
+    html += `<p>${content}</p>`;
+    
+    if (linkUrl) {
+        html += `<a href="${linkUrl}" class="btn btn-primary${placement === 'sidebar' ? ' btn-sm' : ''}" target="_blank">
+                    Learn More <i class="fas fa-external-link-alt ms-1"></i>
+                 </a>`;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function updatePreview() {
+    const title = document.getElementById('adTitle').value || 'Ad Title';
+    const content = document.getElementById('adContent').value || 'Ad content goes here...';
+    const imageUrl = document.getElementById('adImageUrl').value;
+    const linkUrl = document.getElementById('adLinkUrl').value;
+    const placement = document.getElementById('adPlacement').value;
+    
+    const previewHtml = generateAdHtml(title, content, imageUrl, linkUrl, placement);
+    document.getElementById('adPreview').innerHTML = previewHtml;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Reset modal when closed
+    document.getElementById('createAdModal').addEventListener('hidden.bs.modal', function() {
+        document.getElementById('modalTitle').textContent = 'Create New Ad';
+        document.getElementById('saveButtonText').textContent = 'Create Ad';
+        document.getElementById('adForm').action = '{{ url_for("create_ad") }}';
+        document.getElementById('adForm').reset();
+        document.getElementById('adPreview').innerHTML = `
+            <div class="text-muted">
+                <i class="fas fa-bullhorn fa-2x mb-2"></i>
+                <p class="mb-0 small">Fill in the form to see preview</p>
+            </div>
+        `;
+    });
+    
+    // Live preview updates
+    ['adTitle', 'adContent', 'adImageUrl', 'adLinkUrl', 'adPlacement'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updatePreview);
+    });
+    
+    // Filter functionality
+    const filterButtons = document.querySelectorAll('input[name="statusFilter"]');
+    filterButtons.forEach(button => {
+        button.addEventListener('change', function() {
+            const status = this.value;
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const rowStatus = row.getAttribute('data-status');
+                if (status === 'all' || rowStatus === status) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+            const title = row.querySelector('strong').textContent.toLowerCase();
+            const content = row.querySelector('.text-light').textContent.toLowerCase();
+            
+            if (title.includes(query) || content.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

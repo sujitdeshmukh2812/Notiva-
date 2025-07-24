@@ -1,0 +1,266 @@
+{% extends "layout.html" %}
+
+{% block title %}Upload Material - Notiva{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card animate-slide-up">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-upload me-2 text-primary"></i>
+                        Upload Study Material
+                    </h3>
+                    <p class="text-light mt-1 mb-0">Share your knowledge with the Notiva community</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <!-- Course Selection -->
+                                <div class="mb-3">
+                                    <label for="course_id" class="form-label">
+                                        <i class="fas fa-graduation-cap me-1"></i>Course
+                                    </label>
+                                    <select class="form-select" id="course_id" name="course_id" required>
+                                        <option value="">Select Course</option>
+                                        {% for course in courses %}
+                                            <option value="{{ course.id }}">{{ course.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <!-- Year Selection -->
+                                <div class="mb-3">
+                                    <label for="year_id" class="form-label">
+                                        <i class="fas fa-calendar me-1"></i>Year
+                                    </label>
+                                    <select class="form-select" id="year_id" name="year_id" required disabled>
+                                        <option value="">Select Year</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <!-- Semester Selection -->
+                                <div class="mb-3">
+                                    <label for="semester_id" class="form-label">
+                                        <i class="fas fa-calendar-alt me-1"></i>Semester
+                                    </label>
+                                    <select class="form-select" id="semester_id" name="semester_id" required disabled>
+                                        <option value="">Select Semester</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <!-- Subject Selection -->
+                                <div class="mb-3">
+                                    <label for="subject_id" class="form-label">
+                                        <i class="fas fa-book me-1"></i>Subject
+                                    </label>
+                                    <select class="form-select" id="subject_id" name="subject_id" required disabled>
+                                        <option value="">Select Subject</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- File Upload -->
+                        <div class="mb-3">
+                            <label for="file" class="form-label">
+                                <i class="fas fa-file me-1"></i>Select File
+                            </label>
+                            <input type="file" class="form-control" id="file" name="file" required
+                                   accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif">
+                            <div class="form-text">
+                                Supported formats: PDF, DOC, DOCX, TXT, JPG, JPEG, PNG, GIF (Max 16MB)
+                            </div>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-align-left me-1"></i>Description (Optional)
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                      placeholder="Brief description of the material content..."></textarea>
+                        </div>
+                        
+                        <!-- File Preview -->
+                        <div id="filePreview" class="mb-3" style="display: none;">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-file me-2"></i>File Preview
+                                    </h6>
+                                    <div id="fileInfo"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Upload Guidelines -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Upload Guidelines</h6>
+                            <ul class="mb-0">
+                                <li>Ensure the material is relevant to the selected subject</li>
+                                <li>Provide clear and accurate descriptions</li>
+                                <li>Materials will be reviewed before approval</li>
+                                <li>Only upload content you have rights to share</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                                <i class="fas fa-upload me-2"></i>Upload Material
+                            </button>
+                            <a href="{{ url_for('browse') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Browse
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const courseSelect = document.getElementById('course_id');
+    const yearSelect = document.getElementById('year_id');
+    const semesterSelect = document.getElementById('semester_id');
+    const subjectSelect = document.getElementById('subject_id');
+    const fileInput = document.getElementById('file');
+    const filePreview = document.getElementById('filePreview');
+    const fileInfo = document.getElementById('fileInfo');
+    
+    // Course change handler
+    courseSelect.addEventListener('change', function() {
+        const courseId = this.value;
+        
+        // Reset dependent dropdowns
+        yearSelect.innerHTML = '<option value="">Select Year</option>';
+        semesterSelect.innerHTML = '<option value="">Select Semester</option>';
+        subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+        
+        yearSelect.disabled = !courseId;
+        semesterSelect.disabled = true;
+        subjectSelect.disabled = true;
+        
+        if (courseId) {
+            fetch(`/get_years/${courseId}`)
+                .then(response => response.json())
+                .then(years => {
+                    years.forEach(year => {
+                        yearSelect.innerHTML += `<option value="${year.id}">${year.name}</option>`;
+                    });
+                })
+                .catch(error => console.error('Error loading years:', error));
+        }
+    });
+    
+    // Year change handler
+    yearSelect.addEventListener('change', function() {
+        const yearId = this.value;
+        
+        semesterSelect.innerHTML = '<option value="">Select Semester</option>';
+        subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+        
+        semesterSelect.disabled = !yearId;
+        subjectSelect.disabled = true;
+        
+        if (yearId) {
+            fetch(`/get_semesters/${yearId}`)
+                .then(response => response.json())
+                .then(semesters => {
+                    semesters.forEach(semester => {
+                        semesterSelect.innerHTML += `<option value="${semester.id}">${semester.name}</option>`;
+                    });
+                })
+                .catch(error => console.error('Error loading semesters:', error));
+        }
+    });
+    
+    // Semester change handler
+    semesterSelect.addEventListener('change', function() {
+        const semesterId = this.value;
+        
+        subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+        subjectSelect.disabled = !semesterId;
+        
+        if (semesterId) {
+            fetch(`/get_subjects/${semesterId}`)
+                .then(response => response.json())
+                .then(subjects => {
+                    subjects.forEach(subject => {
+                        subjectSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
+                    });
+                })
+                .catch(error => console.error('Error loading subjects:', error));
+        }
+    });
+    
+    // File input change handler
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        
+        if (file) {
+            // Check file size (16MB limit)
+            const maxSize = 16 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert('File size exceeds 16MB limit. Please choose a smaller file.');
+                this.value = '';
+                filePreview.style.display = 'none';
+                return;
+            }
+            
+            // Show file preview
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            const fileExtension = file.name.split('.').pop().toUpperCase();
+            
+            fileInfo.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-file-alt fa-2x text-primary"></i>
+                    </div>
+                    <div>
+                        <strong>${file.name}</strong><br>
+                        <small class="text-muted">Size: ${fileSize} MB | Type: ${fileExtension}</small>
+                    </div>
+                </div>
+            `;
+            
+            filePreview.style.display = 'block';
+        } else {
+            filePreview.style.display = 'none';
+        }
+    });
+    
+    // Form submission
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        const uploadBtn = document.getElementById('uploadBtn');
+        
+        // Show loading state
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+        uploadBtn.disabled = true;
+        
+        // Validate form
+        if (!courseSelect.value || !yearSelect.value || !semesterSelect.value || !subjectSelect.value || !fileInput.files[0]) {
+            e.preventDefault();
+            alert('Please fill in all required fields and select a file.');
+            
+            // Reset button
+            uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload Material';
+            uploadBtn.disabled = false;
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

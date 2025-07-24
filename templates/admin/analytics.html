@@ -1,0 +1,584 @@
+{% extends "layout.html" %}
+
+{% block title %}Analytics - Notiva Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Admin Navigation -->
+    <div class="admin-nav">
+        <ul class="nav nav-pills justify-content-center">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_notes') }}">
+                    <i class="fas fa-file-alt me-1"></i>Notes Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_doubts') }}">
+                    <i class="fas fa-question-circle me-1"></i>Doubts
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_ads') }}">
+                    <i class="fas fa-bullhorn me-1"></i>Ads Manager
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_academic') }}">
+                    <i class="fas fa-university me-1"></i>Academic
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_users') }}">
+                    <i class="fas fa-users me-1"></i>Users
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('admin_analytics') }}">
+                    <i class="fas fa-chart-bar me-1"></i>Analytics
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-chart-bar me-2 text-primary"></i>Platform Analytics
+            </h2>
+            <p class="text-light mb-0">Comprehensive insights into Notiva platform performance</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-success" onclick="exportData('pdf')">
+                <i class="fas fa-file-pdf me-2"></i>Export PDF Report
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-calendar me-2"></i>Time Range
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark">
+                    <li><a class="dropdown-item" href="?range=7d">Last 7 Days</a></li>
+                    <li><a class="dropdown-item" href="?range=30d">Last 30 Days</a></li>
+                    <li><a class="dropdown-item" href="?range=90d">Last 3 Months</a></li>
+                    <li><a class="dropdown-item" href="?range=1y">Last Year</a></li>
+                    <li><a class="dropdown-item" href="?range=all">All Time</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics Overview -->
+    <div class="row mb-5">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stats-card">
+                <div class="stats-number">{{ stats.users.total }}</div>
+                <div class="stats-label">Total Users</div>
+                <div class="progress mt-2" style="height: 3px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: 100%"></div>
+                </div>
+                <small class="text-success">
+                    <i class="fas fa-arrow-up me-1"></i>{{ stats.users.new_this_month }} new this month
+                </small>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stats-card">
+                <div class="stats-number">{{ stats.materials.total }}</div>
+                <div class="stats-label">Study Materials</div>
+                <div class="progress mt-2" style="height: 3px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ (stats.materials.approved / stats.materials.total * 100) if stats.materials.total > 0 else 0 }}%"></div>
+                </div>
+                <small class="text-success">{{ stats.materials.approved }} approved</small>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stats-card">
+                <div class="stats-number">{{ stats.materials.total_downloads }}</div>
+                <div class="stats-label">Total Downloads</div>
+                <div class="progress mt-2" style="height: 3px;">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: 85%"></div>
+                </div>
+                <small class="text-warning">{{ stats.materials.total_views }} total views</small>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stats-card">
+                <div class="stats-number">{{ stats.doubts.total }}</div>
+                <div class="stats-label">Student Doubts</div>
+                <div class="progress mt-2" style="height: 3px;">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ (stats.doubts.answered / stats.doubts.total * 100) if stats.doubts.total > 0 else 0 }}%"></div>
+                </div>
+                <small class="text-info">{{ stats.doubts.answered }} answered</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row mb-5">
+        <!-- User Growth Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>User Growth Trend
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="userGrowthChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Material Upload Trend -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-upload me-2"></i>Material Upload Trend
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="materialUploadChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Analytics -->
+    <div class="row mb-5">
+        <!-- Top Materials -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-star me-2"></i>Top Performing Materials
+                    </h5>
+                    <span class="badge bg-primary">By Downloads</span>
+                </div>
+                <div class="card-body">
+                    {% if top_materials %}
+                        <div class="table-responsive">
+                            <table class="table table-dark table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Material</th>
+                                        <th>Downloads</th>
+                                        <th>Rating</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for material in top_materials %}
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>{{ material.original_filename[:30] }}{% if material.original_filename|length > 30 %}...{% endif %}</strong>
+                                                    <div class="small text-muted">{{ material.subject or material.subject_ref.name if material.subject_ref else 'Unknown Subject' }}</div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">{{ material.download_count }}</span>
+                                            </td>
+                                            <td>
+                                                {% if material.average_rating > 0 %}
+                                                    <div class="rating-stars small">
+                                                        {% for i in range(5) %}
+                                                            {% if i < material.average_rating %}
+                                                                <i class="fas fa-star text-warning"></i>
+                                                            {% else %}
+                                                                <i class="far fa-star text-muted"></i>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                        <span class="ms-1">({{ material.rating_count }})</span>
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-muted">No ratings</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-chart-bar text-muted fa-2x mb-2"></i>
+                            <p class="text-muted mb-0">No materials available</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Most Active Users -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-friends me-2"></i>Most Active Users
+                    </h5>
+                    <span class="badge bg-success">By Uploads</span>
+                </div>
+                <div class="card-body">
+                    {% if active_users %}
+                        <div class="table-responsive">
+                            <table class="table table-dark table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Uploads</th>
+                                        <th>Downloads</th>
+                                        <th>Doubts</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in active_users %}
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>{{ user.name }}</strong>
+                                                    {% if user.is_admin %}
+                                                        <span class="badge bg-warning ms-1">Admin</span>
+                                                    {% endif %}
+                                                    <div class="small text-muted">{{ user.email[:20] }}{% if user.email|length > 20 %}...{% endif %}</div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ user.materials | length }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">{{ user.materials | sum(attribute='download_count') }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ user.doubts | length }}</span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-users text-muted fa-2x mb-2"></i>
+                            <p class="text-muted mb-0">No active users data</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Analytics -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-book me-2"></i>Subject-wise Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if subject_stats %}
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Subject</th>
+                                                <th>Materials</th>
+                                                <th>Total Downloads</th>
+                                                <th>Avg. Downloads per Material</th>
+                                                <th>Performance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for stat in subject_stats %}
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ stat.name }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-primary">{{ stat.material_count }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-success">{{ stat.total_downloads or 0 }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-info">
+                                                            {{ "%.1f"|format((stat.total_downloads or 0) / stat.material_count) if stat.material_count > 0 else 0 }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {% set avg_downloads = (stat.total_downloads or 0) / stat.material_count if stat.material_count > 0 else 0 %}
+                                                        {% if avg_downloads >= 10 %}
+                                                            <span class="badge bg-success">Excellent</span>
+                                                        {% elif avg_downloads >= 5 %}
+                                                            <span class="badge bg-warning">Good</span>
+                                                        {% elif avg_downloads >= 1 %}
+                                                            <span class="badge bg-info">Average</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary">Low</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <canvas id="subjectPerformanceChart" width="300" height="300"></canvas>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-book text-muted fa-3x mb-3"></i>
+                            <h5 class="text-light">No Subject Data Available</h5>
+                            <p class="text-muted">Subject analytics will appear here once materials are uploaded.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platform Health Metrics -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-heartbeat me-2"></i>Platform Health Metrics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">Content Quality</h6>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Approval Rate</span>
+                                    <span class="text-success">{{ "%.1f"|format((stats.materials.approved / stats.materials.total * 100) if stats.materials.total > 0 else 0) }}%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ (stats.materials.approved / stats.materials.total * 100) if stats.materials.total > 0 else 0 }}%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Avg. Rating</span>
+                                    <span class="text-warning">4.2/5.0</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-warning" role="progressbar" style="width: 84%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success mb-3">User Engagement</h6>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Doubt Response Rate</span>
+                                    <span class="text-info">{{ "%.1f"|format((stats.doubts.answered / stats.doubts.total * 100) if stats.doubts.total > 0 else 0) }}%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ (stats.doubts.answered / stats.doubts.total * 100) if stats.doubts.total > 0 else 0 }}%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Active User Ratio</span>
+                                    <span class="text-primary">78%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 78%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullhorn me-2"></i>Ad Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="h2 text-warning">{{ stats.ads.total_clicks }}</div>
+                        <p class="mb-0">Total Ad Clicks</p>
+                    </div>
+                    <div class="text-center mb-3">
+                        <div class="h4 text-info">{{ stats.ads.total_views }}</div>
+                        <p class="mb-0">Total Ad Views</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="h5 text-success">
+                            {{ "%.1f"|format((stats.ads.total_clicks / stats.ads.total_views * 100) if stats.ads.total_views > 0 else 0) }}%
+                        </div>
+                        <p class="mb-0">Click-through Rate</p>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>Active Ads:</span>
+                        <span class="badge bg-success">{{ stats.ads.active }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // User Growth Chart
+    const userGrowthCtx = document.getElementById('userGrowthChart').getContext('2d');
+    new Chart(userGrowthCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+            datasets: [{
+                label: 'New Users',
+                data: [12, 19, 15, 25, 32, 28, 35],
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#f8fafc'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#94a3b8'
+                    },
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#94a3b8'
+                    },
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Material Upload Chart
+    const materialUploadCtx = document.getElementById('materialUploadChart').getContext('2d');
+    new Chart(materialUploadCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+            datasets: [{
+                label: 'Materials Uploaded',
+                data: [65, 59, 80, 81, 56, 72, 88],
+                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                borderColor: '#10b981',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#f8fafc'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#94a3b8'
+                    },
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#94a3b8'
+                    },
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Subject Performance Pie Chart
+    const subjectPerformanceCtx = document.getElementById('subjectPerformanceChart').getContext('2d');
+    new Chart(subjectPerformanceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [
+                {% for stat in subject_stats[:5] %}
+                    '{{ stat.name }}'{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for stat in subject_stats[:5] %}
+                        {{ stat.material_count }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    '#2563eb',
+                    '#10b981',
+                    '#f59e0b',
+                    '#ef4444',
+                    '#8b5cf6'
+                ],
+                borderWidth: 2,
+                borderColor: '#1e293b'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#f8fafc',
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+
+    // Animate stats on page load
+    animateStats();
+});
+</script>
+{% endblock %}

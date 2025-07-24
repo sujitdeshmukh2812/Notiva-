@@ -1,0 +1,245 @@
+{% extends "layout.html" %}
+
+{% block title %}Notiva - Modern Educational Platform{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row align-items-center min-vh-50 py-5">
+        <div class="col-lg-6">
+            <div class="animate-slide-up">
+                <h1 class="display-4 fw-bold mb-4">
+                    Welcome to <span class="text-gradient">Notiva</span>
+                </h1>
+                <p class="lead mb-4 text-light">
+                    Your modern educational platform for sharing, discovering, and accessing high-quality study materials. 
+                    Connect with fellow students and enhance your learning experience.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    {% if not current_user.is_authenticated %}
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Get Started
+                        </a>
+                        <a href="{{ url_for('browse') }}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-search me-2"></i>Browse Materials
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('upload') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-upload me-2"></i>Upload Material
+                        </a>
+                        <a href="{{ url_for('browse') }}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-search me-2"></i>Browse Materials
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="text-center">
+                <div class="glass-effect p-4 rounded-3">
+                    <i class="fas fa-graduation-cap text-primary" style="font-size: 8rem; opacity: 0.7;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banner Ads -->
+    {% if active_ads %}
+        <div class="row mb-5">
+            <div class="col-12">
+                {% for ad in active_ads %}
+                    <div class="ad-banner animate-fade-in">
+                        {% if ad.image_url %}
+                            <img src="{{ ad.image_url }}" alt="{{ ad.title }}" class="img-fluid mb-3" style="max-height: 200px;">
+                        {% endif %}
+                        <h4>{{ ad.title }}</h4>
+                        <p>{{ ad.content }}</p>
+                        {% if ad.link_url %}
+                            <a href="{{ ad.link_url }}" class="btn btn-primary" target="_blank">
+                                Learn More <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Statistics Section -->
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">Platform Statistics</h2>
+            <p class="text-light">Join thousands of students already using Notiva</p>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="stats-card animate-slide-up">
+                <div class="stats-number">{{ total_materials }}</div>
+                <div class="stats-label">Study Materials</div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="stats-card animate-slide-up" style="animation-delay: 0.2s;">
+                <div class="stats-number">{{ total_downloads }}</div>
+                <div class="stats-label">Total Downloads</div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="stats-card animate-slide-up" style="animation-delay: 0.4s;">
+                <div class="stats-number">{{ recent_materials|length }}</div>
+                <div class="stats-label">Recent Uploads</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Materials and Sidebar -->
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Recent Materials -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Recent Materials
+                    </h4>
+                    <a href="{{ url_for('browse') }}" class="btn btn-outline-primary btn-sm">
+                        View All <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_materials %}
+                        {% for material in recent_materials %}
+                            <div class="material-card animate-slide-up" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h5 class="material-title">{{ material.original_filename }}</h5>
+                                        <div class="material-meta">
+                                            <span><i class="fas fa-book"></i> {{ material.subject or material.subject_ref.name if material.subject_ref else 'Unknown' }}</span>
+                                            <span><i class="fas fa-graduation-cap"></i> {{ material.course or material.course_ref.name if material.course_ref else 'Unknown' }}</span>
+                                            <span><i class="fas fa-calendar"></i> {{ material.year or material.year_ref.name if material.year_ref else 'Unknown' }}</span>
+                                            <span><i class="fas fa-download"></i> {{ material.download_count }}</span>
+                                            {% if material.average_rating > 0 %}
+                                                <span class="rating-stars">
+                                                    {% for i in range(5) %}
+                                                        {% if i < material.average_rating %}
+                                                            <i class="fas fa-star"></i>
+                                                        {% else %}
+                                                            <i class="far fa-star"></i>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    ({{ material.rating_count }})
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        {% if material.description %}
+                                            <p class="text-light mb-2">{{ material.description[:100] }}{% if material.description|length > 100 %}...{% endif %}</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('material_detail', material_id=material.id) }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if current_user.is_authenticated %}
+                                            <a href="{{ url_for('download', material_id=material.id) }}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-file-alt text-muted" style="font-size: 3rem;"></i>
+                            <p class="mt-3 text-light">No materials available yet. Be the first to upload!</p>
+                            {% if current_user.is_authenticated %}
+                                <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                                    <i class="fas fa-upload me-2"></i>Upload Material
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            {% if current_user.is_authenticated %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>Upload Material
+                            </a>
+                            <a href="{{ url_for('doubts') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-question-circle me-2"></i>Ask a Doubt
+                            </a>
+                            <a href="{{ url_for('bookmarks') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-bookmark me-2"></i>My Bookmarks
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Sidebar Ads -->
+            {% if sidebar_ads %}
+                {% for ad in sidebar_ads %}
+                    <div class="ad-sidebar animate-fade-in" style="animation-delay: {{ loop.index0 * 0.3 }}s;">
+                        {% if ad.image_url %}
+                            <img src="{{ ad.image_url }}" alt="{{ ad.title }}" class="img-fluid mb-2" style="max-height: 100px;">
+                        {% endif %}
+                        <h6>{{ ad.title }}</h6>
+                        <p class="mb-2">{{ ad.content[:50] }}{% if ad.content|length > 50 %}...{% endif %}</p>
+                        {% if ad.link_url %}
+                            <a href="{{ ad.link_url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                Learn More
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Platform Features -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-star me-2"></i>Why Choose Notiva?</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <i class="fas fa-robot text-primary me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-1">AI-Powered Doubts</h6>
+                            <small class="text-light">Get instant answers to your academic questions</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start mb-3">
+                        <i class="fas fa-star text-warning me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-1">Rating System</h6>
+                            <small class="text-light">Find the best materials through community ratings</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start mb-3">
+                        <i class="fas fa-bookmark text-success me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-1">Bookmarks</h6>
+                            <small class="text-light">Save and organize your favorite materials</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-bell text-info me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-1">Notifications</h6>
+                            <small class="text-light">Stay updated with platform activities</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

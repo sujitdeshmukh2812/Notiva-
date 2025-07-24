@@ -1,0 +1,356 @@
+{% extends "layout.html" %}
+
+{% block title %}Browse Materials - Notiva{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-search me-2 text-primary"></i>Browse Study Materials
+                    </h2>
+                    <p class="text-light mb-0">Discover and download high-quality study materials</p>
+                </div>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Upload Material
+                    </a>
+                {% endif %}
+            </div>
+            
+            <!-- Filters -->
+            <div class="filters-container mb-4">
+                <form method="GET" class="row g-3" id="filterForm">
+                    <div class="col-md-3">
+                        <label for="course" class="form-label">Course</label>
+                        <select class="form-select" name="course" id="course">
+                            <option value="">All Courses</option>
+                            {% for course in courses %}
+                                <option value="{{ course }}" {% if course == current_filters.course %}selected{% endif %}>
+                                    {{ course }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="year" class="form-label">Year</label>
+                        <select class="form-select" name="year" id="year">
+                            <option value="">All Years</option>
+                            {% for year in years %}
+                                <option value="{{ year }}" {% if year == current_filters.year %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="semester" class="form-label">Semester</label>
+                        <select class="form-select" name="semester" id="semester">
+                            <option value="">All Semesters</option>
+                            {% for semester in semesters %}
+                                <option value="{{ semester }}" {% if semester == current_filters.semester %}selected{% endif %}>
+                                    {{ semester }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="subject" class="form-label">Subject</label>
+                        <select class="form-select" name="subject" id="subject">
+                            <option value="">All Subjects</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject }}" {% if subject == current_filters.subject %}selected{% endif %}>
+                                    {{ subject }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i>Apply Filters
+                        </button>
+                        <a href="{{ url_for('browse') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Clear Filters
+                        </a>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Results Count -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>
+                    {{ materials|length }} Material{{ 's' if materials|length != 1 else '' }} Found
+                </h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary btn-sm active" id="gridView">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="listView">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Materials Grid -->
+            <div id="materialsContainer">
+                {% if materials %}
+                    {% for material in materials %}
+                        <div class="material-card animate-slide-up" style="animation-delay: {{ loop.index0 * 0.05 }}s;">
+                            <!-- Bookmark Button -->
+                            {% if current_user.is_authenticated %}
+                                <button class="bookmark-btn" data-material-id="{{ material.id }}" 
+                                        title="{% if material.id in (current_user.bookmarks | map(attribute='material_id') | list) %}Remove from bookmarks{% else %}Add to bookmarks{% endif %}">
+                                    <i class="fas fa-bookmark {% if material.id in (current_user.bookmarks | map(attribute='material_id') | list) %}bookmarked{% endif %}"></i>
+                                </button>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h5 class="material-title">
+                                        <a href="{{ url_for('material_detail', material_id=material.id) }}" 
+                                           class="text-decoration-none text-white">
+                                            {{ material.original_filename }}
+                                        </a>
+                                    </h5>
+                                    
+                                    <div class="material-meta">
+                                        <span>
+                                            <i class="fas fa-book"></i>
+                                            {{ material.subject or material.subject_ref.name if material.subject_ref else 'Unknown' }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-graduation-cap"></i>
+                                            {{ material.course or material.course_ref.name if material.course_ref else 'Unknown' }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-calendar"></i>
+                                            {{ material.year or material.year_ref.name if material.year_ref else 'Unknown' }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-calendar-alt"></i>
+                                            {{ material.semester or material.semester_ref.name if material.semester_ref else 'Unknown' }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="material-meta">
+                                        <span>
+                                            <i class="fas fa-download"></i>
+                                            {{ material.download_count }} downloads
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-eye"></i>
+                                            {{ material.view_count }} views
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-file"></i>
+                                            {{ material.file_type.upper() }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-clock"></i>
+                                            {{ material.uploaded_at.strftime('%b %d, %Y') }}
+                                        </span>
+                                        {% if material.average_rating > 0 %}
+                                            <span class="rating-stars">
+                                                {% for i in range(5) %}
+                                                    {% if i < material.average_rating %}
+                                                        <i class="fas fa-star"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                ({{ material.rating_count }})
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if material.description %}
+                                        <p class="text-light mb-2">
+                                            {{ material.description[:150] }}{% if material.description|length > 150 %}...{% endif %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="d-flex flex-column gap-2">
+                                    <a href="{{ url_for('material_detail', material_id=material.id) }}" 
+                                       class="btn btn-outline-primary btn-sm" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if current_user.is_authenticated %}
+                                        <a href="{{ url_for('download', material_id=material.id) }}" 
+                                           class="btn btn-primary btn-sm" title="Download">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-search text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                        <h4 class="mt-3 text-light">No materials found</h4>
+                        <p class="text-light">
+                            {% if current_filters.course or current_filters.year or current_filters.semester or current_filters.subject %}
+                                Try adjusting your search filters or 
+                                <a href="{{ url_for('browse') }}" class="text-primary">clear all filters</a>
+                            {% else %}
+                                No study materials have been uploaded yet.
+                            {% endif %}
+                        </p>
+                        {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>Upload First Material
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-3">
+            <!-- Quick Stats -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Platform Stats</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="h4 text-primary mb-1">{{ materials|length }}</div>
+                            <small class="text-light">Materials</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="h4 text-success mb-1">{{ materials | sum(attribute='download_count') }}</div>
+                            <small class="text-light">Downloads</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar Ads -->
+            {% if sidebar_ads %}
+                {% for ad in sidebar_ads %}
+                    <div class="ad-sidebar animate-fade-in" style="animation-delay: {{ loop.index0 * 0.2 }}s;">
+                        {% if ad.image_url %}
+                            <img src="{{ ad.image_url }}" alt="{{ ad.title }}" class="img-fluid mb-2" style="max-height: 100px;">
+                        {% endif %}
+                        <h6>{{ ad.title }}</h6>
+                        <p class="mb-2">{{ ad.content[:60] }}{% if ad.content|length > 60 %}...{% endif %}</p>
+                        {% if ad.link_url %}
+                            <a href="{{ ad.link_url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                Learn More
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <!-- Popular Subjects -->
+            {% if subjects %}
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-book me-2"></i>Popular Subjects</h6>
+                    </div>
+                    <div class="card-body">
+                        {% for subject in subjects[:8] %}
+                            <a href="{{ url_for('browse', subject=subject) }}" 
+                               class="btn btn-outline-primary btn-sm me-1 mb-2">
+                                {{ subject }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // View toggle functionality
+    const gridView = document.getElementById('gridView');
+    const listView = document.getElementById('listView');
+    const materialsContainer = document.getElementById('materialsContainer');
+    
+    gridView.addEventListener('click', function() {
+        this.classList.add('active');
+        listView.classList.remove('active');
+        materialsContainer.className = '';
+    });
+    
+    listView.addEventListener('click', function() {
+        this.classList.add('active');
+        gridView.classList.remove('active');
+        materialsContainer.className = 'list-view';
+    });
+    
+    // Bookmark functionality
+    const bookmarkBtns = document.querySelectorAll('.bookmark-btn');
+    bookmarkBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const materialId = this.getAttribute('data-material-id');
+            const icon = this.querySelector('i');
+            
+            fetch(`/toggle_bookmark/${materialId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.bookmarked) {
+                    icon.classList.add('bookmarked');
+                    this.title = 'Remove from bookmarks';
+                } else {
+                    icon.classList.remove('bookmarked');
+                    this.title = 'Add to bookmarks';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    });
+    
+    // Auto-submit filter form on change
+    const filterSelects = document.querySelectorAll('#filterForm select');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+    });
+});
+</script>
+
+<style>
+.list-view .material-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.list-view .material-card .d-flex {
+    width: 100%;
+}
+
+.list-view .material-title {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.list-view .material-meta {
+    font-size: 0.8rem;
+    gap: 1rem;
+}
+</style>
+{% endblock %}
