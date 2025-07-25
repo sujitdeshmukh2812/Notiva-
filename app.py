@@ -14,7 +14,15 @@ def create_app(config_name='default'):
     
     # Basic configurations
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///notiva.db')
+    
+    # Database configuration
+    if os.environ.get('DATABASE_URL'):
+        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    else:
+        # SQLite configuration - use absolute path
+        base_dir = os.path.abspath(os.path.dirname(__file__))
+        app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(base_dir, 'instance', 'notiva.db')}"
+    
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # File upload configurations
@@ -24,6 +32,9 @@ def create_app(config_name='default'):
     
     # Ensure upload directory exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    
+    # Ensure instance directory exists
+    os.makedirs(os.path.join(base_dir, 'instance'), exist_ok=True)
     
     # Initialize extensions
     db.init_app(app)
@@ -55,5 +66,10 @@ def load_user(user_id):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+# Create database tables
+with app.app_context():
+    db.create_all()
+    app.logger.info('Database tables created')
 
 from routes import *  # Import routes after app is created
