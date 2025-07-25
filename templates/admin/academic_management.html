@@ -308,22 +308,25 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="yearCourse" class="form-label">Course</label>
-                        <select class="form-select" id="yearCourse" name="course_id" required>
+                        <select class="form-select" id="yearCourse" name="course_id" required {% if courses|length == 0 %}disabled{% endif %}>
                             <option value="">Select Course</option>
                             {% for course in courses %}
                                 <option value="{{ course.id }}">{{ course.name }}</option>
                             {% endfor %}
                         </select>
+                        {% if courses|length == 0 %}
+                        <div class="text-danger mt-2">No courses found. <b>Add a course first!</b></div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label for="yearName" class="form-label">Year Name</label>
                         <input type="text" class="form-control" id="yearName" name="name" required
-                               placeholder="e.g., 1st Year">
+                               placeholder="e.g., 1st Year" {% if courses|length == 0 %}disabled{% endif %}>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success" {% if courses|length == 0 %}disabled{% endif %}>
                         <i class="fas fa-save me-2"></i><span id="yearSaveText">Create Year</span>
                     </button>
                 </div>
@@ -347,28 +350,32 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="semesterCourse" class="form-label">Course</label>
-                        <select class="form-select" id="semesterCourse" name="course_id" required>
+                        <select class="form-select" id="semesterCourse" name="course_id" required {% if courses|length == 0 %}disabled{% endif %}>
                             <option value="">Select Course</option>
                             {% for course in courses %}
                                 <option value="{{ course.id }}">{{ course.name }}</option>
                             {% endfor %}
                         </select>
+                        {% if courses|length == 0 %}
+                        <div class="text-danger mt-2">No courses found. <b>Add a course first!</b></div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label for="semesterYear" class="form-label">Year</label>
                         <select class="form-select" id="semesterYear" name="year_id" required disabled>
                             <option value="">Select Year</option>
                         </select>
+                        <div id="semesterYearMsg" class="text-danger mt-2" style="display:none;"></div>
                     </div>
                     <div class="mb-3">
                         <label for="semesterName" class="form-label">Semester Name</label>
                         <input type="text" class="form-control" id="semesterName" name="name" required
-                               placeholder="e.g., 1st Semester">
+                               placeholder="e.g., 1st Semester" {% if courses|length == 0 %}disabled{% endif %}>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning">
+                    <button type="submit" class="btn btn-warning" id="semesterSaveBtn">
                         <i class="fas fa-save me-2"></i><span id="semesterSaveText">Create Semester</span>
                     </button>
                 </div>
@@ -392,34 +399,39 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="subjectCourse" class="form-label">Course</label>
-                        <select class="form-select" id="subjectCourse" name="course_id" required>
+                        <select class="form-select" id="subjectCourse" name="course_id" required {% if courses|length == 0 %}disabled{% endif %}>
                             <option value="">Select Course</option>
                             {% for course in courses %}
                                 <option value="{{ course.id }}">{{ course.name }}</option>
                             {% endfor %}
                         </select>
+                        {% if courses|length == 0 %}
+                        <div class="text-danger mt-2">No courses found. <b>Add a course first!</b></div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label for="subjectYear" class="form-label">Year</label>
                         <select class="form-select" id="subjectYear" name="year_id" required disabled>
                             <option value="">Select Year</option>
                         </select>
+                        <div id="subjectYearMsg" class="text-danger mt-2" style="display:none;"></div>
                     </div>
                     <div class="mb-3">
                         <label for="subjectSemester" class="form-label">Semester</label>
                         <select class="form-select" id="subjectSemester" name="semester_id" required disabled>
                             <option value="">Select Semester</option>
                         </select>
+                        <div id="subjectSemesterMsg" class="text-danger mt-2" style="display:none;"></div>
                     </div>
                     <div class="mb-3">
                         <label for="subjectName" class="form-label">Subject Name</label>
                         <input type="text" class="form-control" id="subjectName" name="name" required
-                               placeholder="e.g., Mathematics I">
+                               placeholder="e.g., Mathematics I" {% if courses|length == 0 %}disabled{% endif %}>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-info">
+                    <button type="submit" class="btn btn-info" id="subjectSaveBtn" disabled>
                         <i class="fas fa-save me-2"></i><span id="subjectSaveText">Create Subject</span>
                     </button>
                 </div>
@@ -454,9 +466,11 @@ function editSemester(id, name, yearId) {
     document.getElementById('semesterModalTitle').textContent = 'Edit Semester';
     document.getElementById('semesterSaveText').textContent = 'Update Semester';
     document.getElementById('semesterName').value = name;
-    // Load year dropdown and select the year
-    // This would require additional logic to populate the year dropdown
     document.getElementById('semesterForm').action = `/admin/edit_semester/${id}`;
+    // Set year dropdown to yearId
+    const semesterYear = document.getElementById('semesterYear');
+    semesterYear.value = yearId;
+    semesterYear.disabled = false;
     new bootstrap.Modal(document.getElementById('semesterModal')).show();
 }
 
@@ -464,8 +478,11 @@ function editSubject(id, name, semesterId) {
     document.getElementById('subjectModalTitle').textContent = 'Edit Subject';
     document.getElementById('subjectSaveText').textContent = 'Update Subject';
     document.getElementById('subjectName').value = name;
-    // Load semester dropdown and select the semester
     document.getElementById('subjectForm').action = `/admin/edit_subject/${id}`;
+    // Set semester dropdown to semesterId
+    const subjectSemester = document.getElementById('subjectSemester');
+    subjectSemester.value = semesterId;
+    subjectSemester.disabled = false;
     new bootstrap.Modal(document.getElementById('subjectModal')).show();
 }
 

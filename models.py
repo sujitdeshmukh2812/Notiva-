@@ -65,6 +65,7 @@ class Subject(db.Model):
     
     # Relationships
     materials = db.relationship('Material', backref='subject_ref', lazy=True)
+    doubts = db.relationship('Doubt', backref='subject_ref', lazy=True)  # Add this line
     
     # Unique constraint for name within a semester
     __table_args__ = (db.UniqueConstraint('name', 'semester_id'),)

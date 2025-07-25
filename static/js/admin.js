@@ -37,61 +37,70 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeMaterialManagement();
 });
 
-function initializeAcademicManagement() {
-    // Course selection change handler
-    const courseSelects = document.querySelectorAll('select[name="course_id"]');
-    courseSelects.forEach(select => {
-        select.addEventListener('change', function() {
-            const courseId = this.value;
-            const yearSelect = this.closest('form').querySelector('select[name="year_id"]');
-            
-            if (yearSelect && courseId) {
-                loadYears(courseId, yearSelect);
-            }
-        });
-    });
-
-    // Year selection change handler
-    const yearSelects = document.querySelectorAll('select[name="year_id"]');
-    yearSelects.forEach(select => {
-        select.addEventListener('change', function() {
-            const yearId = this.value;
-            const semesterSelect = this.closest('form').querySelector('select[name="semester_id"]');
-            
-            if (semesterSelect && yearId) {
-                loadSemesters(yearId, semesterSelect);
-            }
-        });
-    });
-}
-
-function loadYears(courseId, yearSelect) {
+function loadYears(courseId, yearSelect, callback) {
     fetch(`/get_years/${courseId}`)
         .then(response => response.json())
         .then(years => {
             yearSelect.innerHTML = '<option value="">Select Year</option>';
-            years.forEach(year => {
-                yearSelect.innerHTML += `<option value="${year.id}">${year.name}</option>`;
-            });
+            if (years.length === 0) {
+                yearSelect.disabled = true;
+                if (yearSelect.id === 'semesterYear') {
+                    document.getElementById('semesterYearMsg').textContent = 'No years found for this course. Please add a year first!';
+                    document.getElementById('semesterYearMsg').style.display = 'block';
+                }
+                if (yearSelect.id === 'subjectYear') {
+                    document.getElementById('subjectYearMsg').textContent = 'No years found for this course. Please add a year first!';
+                    document.getElementById('subjectYearMsg').style.display = 'block';
+                }
+                if (callback) callback(false);
+            } else {
+                years.forEach(year => {
+                    yearSelect.innerHTML += `<option value="${year.id}">${year.name}</option>`;
+                });
+                yearSelect.disabled = false;
+                if (yearSelect.id === 'semesterYear') {
+                    document.getElementById('semesterYearMsg').style.display = 'none';
+                }
+                if (yearSelect.id === 'subjectYear') {
+                    document.getElementById('subjectYearMsg').style.display = 'none';
+                }
+                if (callback) callback(true);
+            }
         })
         .catch(error => {
             console.error('Error loading years:', error);
             showNotification('Error loading years', 'danger');
+            if (callback) callback(false);
         });
 }
 
-function loadSemesters(yearId, semesterSelect) {
+function loadSemesters(yearId, semesterSelect, callback) {
     fetch(`/get_semesters/${yearId}`)
         .then(response => response.json())
         .then(semesters => {
             semesterSelect.innerHTML = '<option value="">Select Semester</option>';
-            semesters.forEach(semester => {
-                semesterSelect.innerHTML += `<option value="${semester.id}">${semester.name}</option>`;
-            });
+            if (semesters.length === 0) {
+                semesterSelect.disabled = true;
+                if (semesterSelect.id === 'subjectSemester') {
+                    document.getElementById('subjectSemesterMsg').textContent = 'No semesters found for this year. Please add a semester first!';
+                    document.getElementById('subjectSemesterMsg').style.display = 'block';
+                }
+                if (callback) callback(false);
+            } else {
+                semesters.forEach(semester => {
+                    semesterSelect.innerHTML += `<option value="${semester.id}">${semester.name}</option>`;
+                });
+                semesterSelect.disabled = false;
+                if (semesterSelect.id === 'subjectSemester') {
+                    document.getElementById('subjectSemesterMsg').style.display = 'none';
+                }
+                if (callback) callback(true);
+            }
         })
         .catch(error => {
             console.error('Error loading semesters:', error);
             showNotification('Error loading semesters', 'danger');
+            if (callback) callback(false);
         });
 }
 
@@ -286,3 +295,136 @@ function exportData(format) {
 // Make functions globally available
 window.exportData = exportData;
 window.showNotification = showNotification;
+
+function initializeAcademicManagement() {
+    // Course selection change handler for Year Modal
+    const yearCourseSelect = document.getElementById('yearCourse');
+    const yearSaveBtn = document.getElementById('yearSaveText')?.closest('button');
+    if (yearCourseSelect && yearSaveBtn) {
+        yearCourseSelect.addEventListener('change', function() {
+            if (this.value) {
+                document.getElementById('yearName').disabled = false;
+                yearSaveBtn.disabled = false;
+            } else {
+                document.getElementById('yearName').disabled = true;
+                yearSaveBtn.disabled = true;
+            }
+        });
+    }
+
+    // Semester Modal: Enable year dropdown and save button only if course and year are selected
+    const semesterCourseSelect = document.getElementById('semesterCourse');
+    const semesterYearSelect = document.getElementById('semesterYear');
+    const semesterNameInput = document.getElementById('semesterName');
+    const semesterSaveBtn = document.getElementById('semesterSaveBtn');
+    
+    if (semesterCourseSelect && semesterYearSelect && semesterNameInput && semesterSaveBtn) {
+        // Enable/disable year dropdown based on course selection
+        semesterCourseSelect.addEventListener('change', function() {
+            const courseId = this.value;
+            semesterYearSelect.innerHTML = '<option value="">Select Year</option>';
+            semesterYearSelect.disabled = !courseId;
+            semesterNameInput.disabled = true;
+            semesterSaveBtn.disabled = true;
+            
+            if (courseId) {
+                loadYears(courseId, semesterYearSelect, (hasYears) => {
+                    if (!hasYears) {
+                        semesterNameInput.disabled = true;
+                        semesterSaveBtn.disabled = true;
+                    }
+                });
+            }
+        });
+
+        // Enable/disable semester name input and save button based on year selection
+        semesterYearSelect.addEventListener('change', function() {
+            const yearId = this.value;
+            semesterNameInput.disabled = !yearId;
+            semesterSaveBtn.disabled = !yearId;
+        });
+    }
+
+    // Subject Modal: Enable year and semester dropdowns and save button only if parents are selected
+    const subjectCourseSelect = document.getElementById('subjectCourse');
+    const subjectYearSelect = document.getElementById('subjectYear');
+    const subjectSemesterSelect = document.getElementById('subjectSemester');
+    const subjectNameInput = document.getElementById('subjectName');
+    const subjectSaveBtn = document.getElementById('subjectSaveBtn');
+    
+    if (subjectCourseSelect && subjectYearSelect && subjectSemesterSelect && subjectSaveBtn) {
+        // Enable/disable year dropdown based on course selection
+        subjectCourseSelect.addEventListener('change', function() {
+            const courseId = this.value;
+            subjectYearSelect.innerHTML = '<option value="">Select Year</option>';
+            subjectSemesterSelect.innerHTML = '<option value="">Select Semester</option>';
+            subjectYearSelect.disabled = !courseId;
+            subjectSemesterSelect.disabled = true;
+            subjectNameInput.disabled = true;
+            subjectSaveBtn.disabled = true;
+            
+            if (courseId) {
+                fetch(`/get_years/${courseId}`)
+                    .then(response => response.json())
+                    .then(years => {
+                        if (years.length === 0) {
+                            document.getElementById('subjectYearMsg').textContent = 'No years found for this course. Add a year first!';
+                            document.getElementById('subjectYearMsg').style.display = 'block';
+                        } else {
+                            years.forEach(year => {
+                                subjectYearSelect.innerHTML += `<option value="${year.id}">${year.name}</option>`;
+                            });
+                            document.getElementById('subjectYearMsg').style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading years:', error);
+                        showNotification('Error loading years', 'danger');
+                    });
+            }
+        });
+
+        // Enable/disable semester dropdown based on year selection
+        subjectYearSelect.addEventListener('change', function() {
+            const yearId = this.value;
+            subjectSemesterSelect.innerHTML = '<option value="">Select Semester</option>';
+            subjectSemesterSelect.disabled = !yearId;
+            subjectNameInput.disabled = true;
+            subjectSaveBtn.disabled = true;
+            
+            if (yearId) {
+                fetch(`/get_semesters/${yearId}`)
+                    .then(response => response.json())
+                    .then(semesters => {
+                        if (semesters.length === 0) {
+                            document.getElementById('subjectSemesterMsg').textContent = 'No semesters found for this year. Add a semester first!';
+                            document.getElementById('subjectSemesterMsg').style.display = 'block';
+                        } else {
+                            semesters.forEach(semester => {
+                                subjectSemesterSelect.innerHTML += `<option value="${semester.id}">${semester.name}</option>`;
+                            });
+                            document.getElementById('subjectSemesterMsg').style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading semesters:', error);
+                        showNotification('Error loading semesters', 'danger');
+                    });
+            }
+        });
+
+        // Enable/disable subject name input based on semester selection
+        subjectSemesterSelect.addEventListener('change', function() {
+            const semesterId = this.value;
+            subjectNameInput.disabled = !semesterId;
+            subjectSaveBtn.disabled = !semesterId;
+            
+            if (semesterId) {
+                document.getElementById('subjectSemesterMsg').style.display = 'none';
+            } else {
+                document.getElementById('subjectSemesterMsg').textContent = 'Select a semester first!';
+                document.getElementById('subjectSemesterMsg').style.display = 'block';
+            }
+        });
+    }
+}

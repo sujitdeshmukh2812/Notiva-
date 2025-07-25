@@ -34,18 +34,39 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        
-        user = User.query.filter_by(email=email).first()
-        
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
-            flash('Welcome to Notiva! Logged in successfully!', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
-        else:
-            flash('Invalid email or password.', 'error')
+        try:
+            email = request.form.get('email', '').strip()
+            password = request.form.get('password', '')
+            
+            app.logger.info(f"Login attempt for email: {email}")
+            
+            if not email or not password:
+                flash('Email and password are required.', 'error')
+                return render_template('login.html')
+            
+            user = User.query.filter_by(email=email).first()
+            app.logger.info(f"User found: {user is not None}")
+            
+            if user and check_password_hash(user.password_hash, password):
+                login_user(user)
+                app.logger.info(f"Login successful for {email}")
+                flash(f'Welcome back, {user.name}!', 'success')
+                
+                # Check if there's a next page in the request
+                next_page = request.args.get('next')
+                if next_page:
+                    return redirect(next_page)
+                
+                # Redirect admin to admin dashboard, regular users to home
+                if user.is_admin:
+                    return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('index'))
+            else:
+                app.logger.warning(f"Failed login attempt for {email}")
+                flash('Invalid email or password.', 'error')
+        except Exception as e:
+            app.logger.error(f"Error during login: {str(e)}")
+            flash('An error occurred during login.', 'error')
     
     return render_template('login.html')
 
@@ -92,77 +113,97 @@ def logout():
 @login_required
 def upload():
     if request.method == 'POST':
-        # Check if file was uploaded
-        if 'file' not in request.files:
-            flash('No file selected.', 'error')
+        try:
+            # Check if file was uploaded
+            if 'file' not in request.files:
+                flash('No file selected.', 'error')
+                return redirect(request.url)
+            
+            file = request.files['file']
+            if file.filename == '':
+                flash('No file selected.', 'error')
+                return redirect(request.url)
+            
+            # Get and validate form data
+            course_id = request.form.get('course_id')
+            year_id = request.form.get('year_id')
+            semester_id = request.form.get('semester_id')
+            subject_id = request.form.get('subject_id')
+            description = request.form.get('description', '').strip()
+            
+            # Validation
+            if not all([course_id, year_id, semester_id, subject_id]):
+                flash('All fields are required.', 'error')
+                return redirect(request.url)
+            
+            # Verify the selected academic structure exists
+            subject = Subject.query.get(subject_id)
+            if not subject or subject.semester_id != int(semester_id):
+                flash('Invalid subject selection.', 'error')
+                return redirect(request.url)
+            
+            if file and allowed_file(file.filename):
+                try:
+                    # Generate unique filename
+                    original_filename = secure_filename(file.filename)
+                    file_extension = original_filename.rsplit('.', 1)[1].lower()
+                    unique_filename = f"{uuid.uuid4()}.{file_extension}"
+                    
+                    # Save file
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                    file.save(file_path)
+                    
+                    # Get file size
+                    file_size = os.path.getsize(file_path)
+                    
+                    # Create material record
+                    material = Material(
+                        filename=unique_filename,
+                        original_filename=original_filename,
+                        description=description if description else None,
+                        course_id=int(course_id),
+                        year_id=int(year_id),
+                        semester_id=int(semester_id),
+                        subject_id=int(subject_id),
+                        course=subject.semester.year.course.name,
+                        year=subject.semester.year.name,
+                        semester=subject.semester.name,
+                        subject=subject.name,
+                        file_size=file_size,
+                        file_type=file_extension,
+                        uploader_id=current_user.id
+                    )
+                    
+                    db.session.add(material)
+                    db.session.commit()
+                    
+                    flash('File uploaded successfully! It will be available after admin approval.', 'success')
+                    return redirect(url_for('browse'))
+                except Exception as e:
+                    # If there was an error saving the file or creating the record,
+                    # try to delete the file if it was saved
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                    db.session.rollback()
+                    app.logger.error(f"Error in file upload: {str(e)}")
+                    flash('An error occurred while uploading the file.', 'error')
+                    return redirect(request.url)
+            else:
+                flash('Invalid file type. Allowed types: PDF, DOC, DOCX, TXT, JPG, JPEG, PNG, GIF', 'error')
+                return redirect(request.url)
+        except Exception as e:
+            app.logger.error(f"Error in upload route: {str(e)}")
+            flash('An error occurred while processing your request.', 'error')
             return redirect(request.url)
-        
-        file = request.files['file']
-        if file.filename == '':
-            flash('No file selected.', 'error')
-            return redirect(request.url)
-        
-        # Get form data
-        course_id = request.form.get('course_id')
-        year_id = request.form.get('year_id')
-        semester_id = request.form.get('semester_id')
-        subject_id = request.form.get('subject_id')
-        description = request.form.get('description', '').strip()
-        
-        # Validation
-        if not all([course_id, year_id, semester_id, subject_id]):
-            flash('All fields are required.', 'error')
-            return redirect(request.url)
-        
-        # Verify the selected academic structure exists
-        subject = Subject.query.get(subject_id)
-        if not subject or subject.semester_id != int(semester_id):
-            flash('Invalid subject selection.', 'error')
-            return redirect(request.url)
-        
-        if file and allowed_file(file.filename):
-            # Generate unique filename
-            original_filename = secure_filename(file.filename) if file.filename else 'unknown'
-            file_extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'unknown'
-            unique_filename = f"{uuid.uuid4()}.{file_extension}"
-            
-            # Save file
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-            file.save(file_path)
-            
-            # Get file size
-            file_size = os.path.getsize(file_path)
-            
-            # Create material record with new structure
-            material = Material(
-                filename=unique_filename,
-                original_filename=original_filename,
-                description=description if description else None,
-                course_id=int(course_id),
-                year_id=int(year_id),
-                semester_id=int(semester_id),
-                subject_id=int(subject_id),
-                # Keep old fields for backward compatibility
-                course=subject.semester.year.course.name,
-                year=subject.semester.year.name,
-                semester=subject.semester.name,
-                subject=subject.name,
-                file_size=file_size,
-                file_type=file_extension,
-                uploader_id=current_user.id
-            )
-            
-            db.session.add(material)
-            db.session.commit()
-            
-            flash('File uploaded successfully! It will be available after admin approval.', 'success')
-            return redirect(url_for('browse'))
-        else:
-            flash('Invalid file type. Allowed types: PDF, DOC, DOCX, TXT, JPG, JPEG, PNG, GIF', 'error')
     
-    # Get courses for the upload form
-    courses = Course.query.all()
-    return render_template('upload.html', courses=courses)
+    # GET request - show upload form
+    try:
+        courses = Course.query.order_by(Course.name).all()
+        return render_template('upload.html', courses=courses)
+    except Exception as e:
+        app.logger.error(f"Error loading upload form: {str(e)}")
+        flash('An error occurred while loading the upload form.', 'error')
+        return redirect(url_for('index'))
 
 @app.route('/browse')
 def browse():
@@ -323,6 +364,36 @@ def download(material_id):
                     as_attachment=True, 
                     download_name=material.original_filename)
 
+@app.route('/view/<int:material_id>')
+@login_required
+def view_material(material_id):
+    material = Material.query.get_or_404(material_id)
+    
+    # Check if material is approved
+    if material.status != 'approved' and not current_user.is_admin:
+        flash('This file is not available for viewing.', 'error')
+        return redirect(url_for('browse'))
+    
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], material.filename)
+    
+    if not os.path.exists(file_path):
+        flash('File not found.', 'error')
+        return redirect(url_for('browse'))
+    
+    # For PDFs, display in browser
+    if material.file_type.lower() == 'pdf':
+        return send_file(
+            file_path,
+            mimetype='application/pdf'
+        )
+    
+    # For other file types, download them
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=material.original_filename
+    )
+
 @app.route('/bookmarks')
 @login_required
 def bookmarks():
@@ -447,19 +518,41 @@ def notifications():
     return render_template('notifications.html', notifications=user_notifications)
 
 @app.route('/get_years/<int:course_id>')
+@login_required
 def get_years(course_id):
-    years = Year.query.filter_by(course_id=course_id).all()
-    return jsonify([{'id': year.id, 'name': year.name} for year in years])
+    try:
+        years = Year.query.filter_by(course_id=course_id).order_by(Year.name).all()
+        return jsonify([{'id': year.id, 'name': year.name} for year in years])
+    except Exception as e:
+        app.logger.error(f"Error in get_years: {str(e)}")
+        return jsonify({'error': 'Failed to fetch years'}), 500
 
 @app.route('/get_semesters/<int:year_id>')
+@login_required
 def get_semesters(year_id):
-    semesters = Semester.query.filter_by(year_id=year_id).all()
-    return jsonify([{'id': semester.id, 'name': semester.name} for semester in semesters])
+    try:
+        semesters = Semester.query.filter_by(year_id=year_id).order_by(Semester.name).all()
+        return jsonify([{'id': semester.id, 'name': semester.name} for semester in semesters])
+    except Exception as e:
+        app.logger.error(f"Error in get_semesters: {str(e)}")
+        return jsonify({'error': 'Failed to fetch semesters'}), 500
 
 @app.route('/get_subjects/<int:semester_id>')
+@login_required
 def get_subjects(semester_id):
-    subjects = Subject.query.filter_by(semester_id=semester_id).all()
-    return jsonify([{'id': subject.id, 'name': subject.name} for subject in subjects])
+    try:
+        subjects = Subject.query.filter_by(semester_id=semester_id).order_by(Subject.name).all()
+        return jsonify([{'id': subject.id, 'name': subject.name} for subject in subjects])
+    except Exception as e:
+        app.logger.error(f"Error in get_subjects: {str(e)}")
+        return jsonify({'error': 'Failed to fetch subjects'}), 500
+
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.utcnow().isoformat()
+    })
 
 # Admin Routes
 @app.route('/admin')
@@ -469,29 +562,34 @@ def admin_dashboard():
         flash('Access denied. Admin privileges required.', 'error')
         return redirect(url_for('index'))
     
-    # Get statistics for dashboard
-    stats = {
-        'total_users': User.query.count(),
-        'total_materials': Material.query.count(),
-        'pending_materials': Material.query.filter_by(status='pending').count(),
-        'approved_materials': Material.query.filter_by(status='approved').count(),
-        'total_doubts': Doubt.query.count(),
-        'unanswered_doubts': Doubt.query.filter_by(is_answered=False).count(),
-        'total_ads': Ad.query.count(),
-        'active_ads': Ad.query.filter_by(is_active=True).count(),
-        'total_downloads': db.session.query(db.func.sum(Material.download_count)).scalar() or 0
-    }
-    
-    # Recent activities
-    recent_materials = Material.query.order_by(Material.uploaded_at.desc()).limit(5).all()
-    recent_doubts = Doubt.query.order_by(Doubt.created_at.desc()).limit(5).all()
-    recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
-    
-    return render_template('admin/dashboard.html', 
-                         stats=stats,
-                         recent_materials=recent_materials,
-                         recent_doubts=recent_doubts,
-                         recent_users=recent_users)
+    try:
+        # Get statistics for dashboard
+        stats = {
+            'total_users': User.query.count(),
+            'total_materials': Material.query.count(),
+            'pending_materials': Material.query.filter_by(status='pending').count(),
+            'approved_materials': Material.query.filter_by(status='approved').count(),
+            'total_doubts': Doubt.query.count(),
+            'unanswered_doubts': Doubt.query.filter_by(is_answered=False).count(),
+            'total_ads': Ad.query.count(),
+            'active_ads': Ad.query.filter_by(is_active=True).count(),
+            'total_downloads': db.session.query(db.func.sum(Material.download_count)).scalar() or 0
+        }
+        
+        # Recent activities
+        recent_materials = Material.query.order_by(Material.uploaded_at.desc()).limit(5).all()
+        recent_doubts = Doubt.query.order_by(Doubt.created_at.desc()).limit(5).all()
+        recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
+        
+        return render_template('admin/dashboard.html', 
+                            stats=stats,
+                            recent_materials=recent_materials,
+                            recent_doubts=recent_doubts,
+                            recent_users=recent_users)
+    except Exception as e:
+        app.logger.error(f"Error in admin_dashboard: {str(e)}")
+        flash('An error occurred while loading the dashboard.', 'error')
+        return redirect(url_for('index'))
 
 @app.route('/admin/notes')
 @login_required
@@ -678,71 +776,82 @@ def delete_ad(ad_id):
 def admin_academic():
     if not current_user.is_admin:
         abort(403)
-    
-    courses = Course.query.all()
-    
-    # Calculate statistics
-    total_years = Year.query.count()
-    total_semesters = Semester.query.count()
-    total_subjects = Subject.query.count()
-    
-    return render_template('admin/academic_management.html', 
-                         courses=courses,
-                         total_years=total_years,
-                         total_semesters=total_semesters,
-                         total_subjects=total_subjects)
+    try:
+        courses = Course.query.order_by(Course.name).all()
+        total_years = Year.query.count()
+        total_semesters = Semester.query.count()
+        total_subjects = Subject.query.count()
+        
+        return render_template('admin/academic_management.html',
+                            courses=courses,
+                            total_years=total_years,
+                            total_semesters=total_semesters,
+                            total_subjects=total_subjects)
+    except Exception as e:
+        app.logger.error(f"Error in admin_academic: {str(e)}")
+        flash('An error occurred while loading academic management.', 'error')
+        return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/create_course', methods=['POST'])
 @login_required
 def create_course():
     if not current_user.is_admin:
         abort(403)
-    
-    name = request.form.get('name', '').strip()
-    
-    if not name:
-        flash('Course name is required.', 'error')
+    try:
+        name = request.form.get('name', '').strip()
+        if not name:
+            flash('Course name is required.', 'error')
+            return redirect(url_for('admin_academic'))
+        
+        if Course.query.filter_by(name=name).first():
+            flash('Course already exists.', 'error')
+            return redirect(url_for('admin_academic'))
+        
+        course = Course(name=name)
+        db.session.add(course)
+        db.session.commit()
+        
+        flash(f'Course "{name}" created successfully!', 'success')
         return redirect(url_for('admin_academic'))
-    
-    if Course.query.filter_by(name=name).first():
-        flash('Course already exists.', 'error')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in create_course: {str(e)}")
+        flash('An error occurred while creating the course.', 'error')
         return redirect(url_for('admin_academic'))
-    
-    course = Course(name=name)
-    db.session.add(course)
-    db.session.commit()
-    
-    flash(f'Course "{name}" created successfully!', 'success')
-    return redirect(url_for('admin_academic'))
 
 @app.route('/admin/create_year', methods=['POST'])
 @login_required
 def create_year():
     if not current_user.is_admin:
         abort(403)
-    
-    name = request.form.get('name', '').strip()
-    course_id = request.form.get('course_id')
-    
-    if not name or not course_id:
-        flash('Year name and course are required.', 'error')
+    try:
+        name = request.form.get('name', '').strip()
+        course_id = request.form.get('course_id')
+        
+        if not name or not course_id:
+            flash('Year name and course are required.', 'error')
+            return redirect(url_for('admin_academic'))
+        
+        course = Course.query.get(course_id)
+        if not course:
+            flash('Invalid course selected.', 'error')
+            return redirect(url_for('admin_academic'))
+        
+        if Year.query.filter_by(name=name, course_id=course_id).first():
+            flash('Year already exists for this course.', 'error')
+            return redirect(url_for('admin_academic'))
+        
+        year = Year(name=name, course_id=course_id)
+        db.session.add(year)
+        db.session.commit()
+        
+        flash(f'Year "{name}" created successfully!', 'success')
         return redirect(url_for('admin_academic'))
-    
-    course = Course.query.get(course_id)
-    if not course:
-        flash('Invalid course selected.', 'error')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in create_year: {str(e)}")
+        flash('An error occurred while creating the year.', 'error')
         return redirect(url_for('admin_academic'))
-    
-    if Year.query.filter_by(name=name, course_id=course_id).first():
-        flash('Year already exists for this course.', 'error')
-        return redirect(url_for('admin_academic'))
-    
-    year = Year(name=name, course_id=course_id)
-    db.session.add(year)
-    db.session.commit()
-    
-    flash(f'Year "{name}" created successfully!', 'success')
-    return redirect(url_for('admin_academic'))
 
 @app.route('/admin/create_semester', methods=['POST'])
 @login_required
@@ -964,6 +1073,58 @@ def admin_analytics():
                          top_materials=top_materials,
                          active_users=active_users,
                          subject_stats=subject_stats)
+
+@app.route('/admin/edit_semester/<int:semester_id>', methods=['POST'])
+@login_required
+def edit_semester(semester_id):
+    if not current_user.is_admin:
+        abort(403)
+    semester = Semester.query.get_or_404(semester_id)
+    new_name = request.form.get('name', '').strip()
+    new_year_id = request.form.get('year_id')
+    if not new_name or not new_year_id:
+        flash('Semester name and year are required.', 'error')
+        return redirect(url_for('admin_academic'))
+    year = Year.query.get(new_year_id)
+    if not year:
+        flash('Invalid year selected.', 'error')
+        return redirect(url_for('admin_academic'))
+    # Check for duplicates within the year (excluding current semester)
+    existing = Semester.query.filter(Semester.name == new_name, Semester.year_id == new_year_id, Semester.id != semester_id).first()
+    if existing:
+        flash('Semester name already exists in this year.', 'error')
+        return redirect(url_for('admin_academic'))
+    semester.name = new_name
+    semester.year_id = new_year_id
+    db.session.commit()
+    flash('Semester updated successfully!', 'success')
+    return redirect(url_for('admin_academic'))
+
+@app.route('/admin/edit_subject/<int:subject_id>', methods=['POST'])
+@login_required
+def edit_subject(subject_id):
+    if not current_user.is_admin:
+        abort(403)
+    subject = Subject.query.get_or_404(subject_id)
+    new_name = request.form.get('name', '').strip()
+    new_semester_id = request.form.get('semester_id')
+    if not new_name or not new_semester_id:
+        flash('Subject name and semester are required.', 'error')
+        return redirect(url_for('admin_academic'))
+    semester = Semester.query.get(new_semester_id)
+    if not semester:
+        flash('Invalid semester selected.', 'error')
+        return redirect(url_for('admin_academic'))
+    # Check for duplicates within the semester (excluding current subject)
+    existing = Subject.query.filter(Subject.name == new_name, Subject.semester_id == new_semester_id, Subject.id != subject_id).first()
+    if existing:
+        flash('Subject name already exists in this semester.', 'error')
+        return redirect(url_for('admin_academic'))
+    subject.name = new_name
+    subject.semester_id = new_semester_id
+    db.session.commit()
+    flash('Subject updated successfully!', 'success')
+    return redirect(url_for('admin_academic'))
 
 # Context processor to inject unread notification count
 @app.context_processor
