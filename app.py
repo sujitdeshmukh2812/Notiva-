@@ -30,11 +30,10 @@ def create_app(config_name='default'):
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
     app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'}
     
-    # Ensure upload directory exists
+    # Ensure directories exist
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    
-    # Ensure instance directory exists
-    os.makedirs(os.path.join(base_dir, 'instance'), exist_ok=True)
+    if not os.environ.get('DATABASE_URL'):  # Only for SQLite
+        os.makedirs(os.path.join(base_dir, 'instance'), exist_ok=True)
     
     # Initialize extensions
     db.init_app(app)
@@ -67,9 +66,26 @@ def load_user(user_id):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-# Create database tables
+from routes import *  # Import routes before database creation
+
+# Initialize database and create admin user
 with app.app_context():
     db.create_all()
     app.logger.info('Database tables created')
-
-from routes import *  # Import routes after app is created
+    
+    # Create admin user if it doesn't exist
+    from models import User
+    from werkzeug.security import generate_password_hash
+    
+    admin_email = "sujitdeshmukh2812@gmail.com"
+    admin = User.query.filter_by(email=admin_email).first()
+    if not admin:
+        admin = User(
+            name="Sujit Deshmukh",
+            email=admin_email,
+            password_hash=generate_password_hash("Sujit@2812"),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        app.logger.info('Admin user created')

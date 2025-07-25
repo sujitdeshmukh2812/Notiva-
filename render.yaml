@@ -4,6 +4,10 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn wsgi:app
+    disk:
+      name: sqlite
+      mountPath: /opt/render/project/src/instance
+      sizeGB: 1
     envVars:
       - key: FLASK_ENV
         value: production
