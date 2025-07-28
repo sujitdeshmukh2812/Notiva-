@@ -2,14 +2,8 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
 from config import config
-
-# Initialize extensions
-db = SQLAlchemy()
-login_manager = LoginManager()
-login_manager.login_view = 'login'
+from extensions import db, login_manager
 
 def create_app(config_name=None):
     if config_name is None:
@@ -24,7 +18,7 @@ def create_app(config_name=None):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
-    # Initialize extensions
+    # Initialize extensions with the app
     db.init_app(app)
     login_manager.init_app(app)
 
