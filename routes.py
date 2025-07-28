@@ -1196,3 +1196,18 @@ def inject_notifications():
         unread_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
         return {'unread_notifications': unread_count}
     return {'unread_notifications': 0}
+
+@app.route('/get_popup_ad')
+def get_popup_ad():
+    popup_ad = Ad.query.filter_by(is_active=True, placement='popup').first()
+    if popup_ad:
+        return jsonify({
+            'success': True,
+            'ad': {
+                'title': popup_ad.title,
+                'content': popup_ad.content,
+                'image_url': popup_ad.image_url,
+                'link_url': popup_ad.link_url
+            }
+        })
+    return jsonify({'success': False})
