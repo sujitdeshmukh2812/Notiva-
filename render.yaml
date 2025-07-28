@@ -4,10 +4,6 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn wsgi:app
-    disk:
-      name: sqlite
-      mountPath: /opt/render/project/src/instance
-      sizeGB: 1
     envVars:
       - key: FLASK_ENV
         value: production
@@ -16,4 +12,12 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        value: sqlite:///instance/notiva.db 
+        fromDatabase:
+          name: notiva-db
+          property: connectionString
+
+databases:
+  - name: notiva-db
+    databaseName: notiva_db
+    user: notiva_user
+    plan: free

@@ -17,15 +17,9 @@ def create_app(config_name='default'):
     
     # Database configuration
     database_url = os.environ.get('DATABASE_URL')
-    if database_url:
-        # Heroku/Render PostgreSQL compatibility fix
-        if database_url.startswith("postgres://"):
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
-        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    else:
-        # SQLite configuration - use absolute path
-        base_dir = os.path.abspath(os.path.dirname(__file__))
-        app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(base_dir, 'instance', 'notiva.db')}"
+    if database_url and database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
@@ -36,8 +30,6 @@ def create_app(config_name='default'):
     
     # Ensure directories exist
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    if not os.environ.get('DATABASE_URL'):  # Only for SQLite
-        os.makedirs(os.path.join(base_dir, 'instance'), exist_ok=True)
     
     # Initialize extensions
     db.init_app(app)
