@@ -7,9 +7,9 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from .app import db
-from .models import User, Material, Course, Year, Semester, Subject, Rating, Bookmark, Notification, Doubt, Ad
-from .openai_helper import answer_subject_doubt, generate_document_summary
+from app import db
+from models import User, Material, Course, Year, Semester, Subject, Rating, Bookmark, Notification, Doubt, Ad
+import openai_helper
 
 main = Blueprint('main', __name__)
 
@@ -500,7 +500,7 @@ def ask_doubt():
         if subject:
             subject_name = subject.name
     
-    ai_answer = answer_subject_doubt(question, subject_name)
+    ai_answer = openai_helper.answer_subject_doubt(question, subject_name)
     doubt.answer = ai_answer
     doubt.is_answered = True
     doubt.answered_at = datetime.utcnow()
