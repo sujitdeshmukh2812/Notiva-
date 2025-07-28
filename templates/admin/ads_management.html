@@ -241,7 +241,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('create_ad') }}" id="adForm">
+            <form method="POST" action="{{ url_for('create_ad') }}" id="adForm" enctype="multipart/form-data">
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-8">
@@ -262,11 +262,10 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label for="adImageUrl" class="form-label">
-                                    <i class="fas fa-image me-1"></i>Image URL (Optional)
+                                <label for="adImage" class="form-label">
+                                    <i class="fas fa-image me-1"></i>Ad Image (Optional)
                                 </label>
-                                <input type="url" class="form-control" id="adImageUrl" name="image_url"
-                                       placeholder="https://example.com/image.jpg">
+                                <input type="file" class="form-control" id="adImage" name="image" accept="image/*">
                             </div>
                             
                             <div class="mb-3">
@@ -351,7 +350,7 @@ function editAd(id, title, content, imageUrl, linkUrl, placement) {
     document.getElementById('saveButtonText').textContent = 'Update Ad';
     document.getElementById('adTitle').value = title;
     document.getElementById('adContent').value = content;
-    document.getElementById('adImageUrl').value = imageUrl;
+    // Note: We can't pre-fill the file input, but we can show the existing image
     document.getElementById('adLinkUrl').value = linkUrl;
     document.getElementById('adPlacement').value = placement;
     
@@ -396,7 +395,11 @@ function generateAdHtml(title, content, imageUrl, linkUrl, placement) {
 function updatePreview() {
     const title = document.getElementById('adTitle').value || 'Ad Title';
     const content = document.getElementById('adContent').value || 'Ad content goes here...';
-    const imageUrl = document.getElementById('adImageUrl').value;
+    const imageFile = document.getElementById('adImage').files[0];
+    let imageUrl = '';
+    if (imageFile) {
+        imageUrl = URL.createObjectURL(imageFile);
+    }
     const linkUrl = document.getElementById('adLinkUrl').value;
     const placement = document.getElementById('adPlacement').value;
     
@@ -420,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Live preview updates
-    ['adTitle', 'adContent', 'adImageUrl', 'adLinkUrl', 'adPlacement'].forEach(id => {
+    ['adTitle', 'adContent', 'adImage', 'adLinkUrl', 'adPlacement'].forEach(id => {
         document.getElementById(id).addEventListener('input', updatePreview);
     });
     

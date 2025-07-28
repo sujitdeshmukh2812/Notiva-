@@ -189,7 +189,8 @@ def upload():
                     flash('An error occurred while uploading the file.', 'error')
                     return redirect(request.url)
             else:
-                flash('Invalid file type. Allowed types: PDF, DOC, DOCX, TXT, JPG, JPEG, PNG, GIF', 'error')
+                allowed_types = ', '.join(app.config['ALLOWED_EXTENSIONS']).upper()
+                flash(f'Invalid file type. Allowed types: {allowed_types}', 'error')
                 return redirect(request.url)
         except Exception as e:
             app.logger.error(f"Error in upload route: {str(e)}")
@@ -721,7 +722,6 @@ def create_ad():
     
     title = request.form.get('title', '').strip()
     content = request.form.get('content', '').strip()
-    image_url = request.form.get('image_url', '').strip()
     link_url = request.form.get('link_url', '').strip()
     placement = request.form.get('placement', 'sidebar')
     
@@ -729,10 +729,19 @@ def create_ad():
         flash('Title and content are required.', 'error')
         return redirect(url_for('admin_ads'))
     
+    image_url = None
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4()}_{filename}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+            image_url = url_for('static', filename=f'uploads/{unique_filename}')
+
     ad = Ad(
         title=title,
         content=content,
-        image_url=image_url if image_url else None,
+        image_url=image_url,
         link_url=link_url if link_url else None,
         placement=placement,
         created_by=current_user.id
@@ -765,6 +774,19 @@ def delete_ad(ad_id):
         abort(403)
     
     ad = Ad.query.get_or_404(ad_id)
+    
+    # Delete the associated image file if it exists
+    if ad.image_url:
+        try:
+            # Extract filename from URL path
+            filename = os.path.basename(ad.image_url)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                app.logger.info(f"Deleted ad image: {file_path}")
+        except Exception as e:
+            app.logger.error(f"Error deleting ad image file {ad.image_url}: {e}")
+
     db.session.delete(ad)
     db.session.commit()
     
@@ -920,16 +942,29 @@ def delete_course(course_id):
     
     course = Course.query.get_or_404(course_id)
     
-    # Check if course has materials
-    material_count = Material.query.join(Subject).join(Semester).join(Year).filter(Year.course_id == course_id).count()
-    if material_count > 0:
-        flash(f'Cannot delete course "{course.name}". It contains {material_count} materials.', 'error')
-        return redirect(url_for('admin_academic'))
-    
+    # Find and delete associated years, semesters, subjects, and materials
+    years_to_delete = Year.query.filter_by(course_id=course_id).all()
+    for year in years_to_delete:
+        semesters_to_delete = Semester.query.filter_by(year_id=year.id).all()
+        for semester in semesters_to_delete:
+            subjects_to_delete = Subject.query.filter_by(semester_id=semester.id).all()
+            for subject in subjects_to_delete:
+                materials_to_delete = Material.query.filter_by(subject_id=subject.id).all()
+                for material in materials_to_delete:
+                    # Delete the file
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], material.filename)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                    # Delete from database
+                    db.session.delete(material)
+                db.session.delete(subject)
+            db.session.delete(semester)
+        db.session.delete(year)
+
     db.session.delete(course)
     db.session.commit()
     
-    flash(f'Course "{course.name}" deleted successfully!', 'success')
+    flash(f'Course "{course.name}" and all its associated data have been deleted.', 'success')
     return redirect(url_for('admin_academic'))
 
 @app.route('/admin/delete_year/<int:year_id>')
@@ -940,16 +975,26 @@ def delete_year(year_id):
     
     year = Year.query.get_or_404(year_id)
     
-    # Check if year has materials
-    material_count = Material.query.join(Subject).join(Semester).filter(Semester.year_id == year_id).count()
-    if material_count > 0:
-        flash(f'Cannot delete year "{year.name}". It contains {material_count} materials.', 'error')
-        return redirect(url_for('admin_academic'))
-    
+    # Find and delete associated semesters, subjects, and materials
+    semesters_to_delete = Semester.query.filter_by(year_id=year_id).all()
+    for semester in semesters_to_delete:
+        subjects_to_delete = Subject.query.filter_by(semester_id=semester.id).all()
+        for subject in subjects_to_delete:
+            materials_to_delete = Material.query.filter_by(subject_id=subject.id).all()
+            for material in materials_to_delete:
+                # Delete the file
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], material.filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                # Delete from database
+                db.session.delete(material)
+            db.session.delete(subject)
+        db.session.delete(semester)
+
     db.session.delete(year)
     db.session.commit()
     
-    flash(f'Year "{year.name}" deleted successfully!', 'success')
+    flash(f'Year "{year.name}" and its associated semesters, subjects, and materials have been deleted.', 'success')
     return redirect(url_for('admin_academic'))
 
 @app.route('/admin/delete_semester/<int:semester_id>')
@@ -960,16 +1005,23 @@ def delete_semester(semester_id):
     
     semester = Semester.query.get_or_404(semester_id)
     
-    # Check if semester has materials
-    material_count = Material.query.join(Subject).filter(Subject.semester_id == semester_id).count()
-    if material_count > 0:
-        flash(f'Cannot delete semester "{semester.name}". It contains {material_count} materials.', 'error')
-        return redirect(url_for('admin_academic'))
-    
+    # Find and delete associated subjects and their materials
+    subjects_to_delete = Subject.query.filter_by(semester_id=semester_id).all()
+    for subject in subjects_to_delete:
+        materials_to_delete = Material.query.filter_by(subject_id=subject.id).all()
+        for material in materials_to_delete:
+            # Delete the file
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], material.filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            # Delete from database
+            db.session.delete(material)
+        db.session.delete(subject)
+
     db.session.delete(semester)
     db.session.commit()
     
-    flash(f'Semester "{semester.name}" deleted successfully!', 'success')
+    flash(f'Semester "{semester.name}" and its associated subjects and materials have been deleted.', 'success')
     return redirect(url_for('admin_academic'))
 
 @app.route('/admin/delete_subject/<int:subject_id>')
@@ -980,16 +1032,20 @@ def delete_subject(subject_id):
     
     subject = Subject.query.get_or_404(subject_id)
     
-    # Check if subject has materials
-    material_count = Material.query.filter_by(subject_id=subject_id).count()
-    if material_count > 0:
-        flash(f'Cannot delete subject "{subject.name}". It contains {material_count} materials.', 'error')
-        return redirect(url_for('admin_academic'))
-    
+    # Find and delete associated materials and their files
+    materials_to_delete = Material.query.filter_by(subject_id=subject_id).all()
+    for material in materials_to_delete:
+        # Delete the file
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], material.filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        # Delete from database
+        db.session.delete(material)
+
     db.session.delete(subject)
     db.session.commit()
     
-    flash(f'Subject "{subject.name}" deleted successfully!', 'success')
+    flash(f'Subject "{subject.name}" and its associated materials have been deleted.', 'success')
     return redirect(url_for('admin_academic'))
 
 @app.route('/admin/users')
@@ -1074,31 +1130,38 @@ def admin_analytics():
                          active_users=active_users,
                          subject_stats=subject_stats)
 
-@app.route('/admin/edit_semester/<int:semester_id>', methods=['POST'])
+@app.route('/admin/edit_ad/<int:ad_id>', methods=['POST'])
 @login_required
-def edit_semester(semester_id):
+def edit_ad(ad_id):
     if not current_user.is_admin:
         abort(403)
-    semester = Semester.query.get_or_404(semester_id)
-    new_name = request.form.get('name', '').strip()
-    new_year_id = request.form.get('year_id')
-    if not new_name or not new_year_id:
-        flash('Semester name and year are required.', 'error')
-        return redirect(url_for('admin_academic'))
-    year = Year.query.get(new_year_id)
-    if not year:
-        flash('Invalid year selected.', 'error')
-        return redirect(url_for('admin_academic'))
-    # Check for duplicates within the year (excluding current semester)
-    existing = Semester.query.filter(Semester.name == new_name, Semester.year_id == new_year_id, Semester.id != semester_id).first()
-    if existing:
-        flash('Semester name already exists in this year.', 'error')
-        return redirect(url_for('admin_academic'))
-    semester.name = new_name
-    semester.year_id = new_year_id
+    ad = Ad.query.get_or_404(ad_id)
+    
+    ad.title = request.form.get('title', '').strip()
+    ad.content = request.form.get('content', '').strip()
+    ad.link_url = request.form.get('link_url', '').strip()
+    ad.placement = request.form.get('placement', 'sidebar')
+
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and allowed_file(file.filename):
+            # Delete old image if it exists
+            if ad.image_url:
+                try:
+                    old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], ad.image_url.split('/')[-1])
+                    if os.path.exists(old_image_path):
+                        os.remove(old_image_path)
+                except Exception as e:
+                    app.logger.error(f"Error deleting old ad image: {e}")
+
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4()}_{filename}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+            ad.image_url = url_for('static', filename=f'uploads/{unique_filename}')
+
     db.session.commit()
-    flash('Semester updated successfully!', 'success')
-    return redirect(url_for('admin_academic'))
+    flash('Ad updated successfully!', 'success')
+    return redirect(url_for('admin_ads'))
 
 @app.route('/admin/edit_subject/<int:subject_id>', methods=['POST'])
 @login_required
