@@ -62,26 +62,4 @@ def load_user(user_id):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-from routes import *  # Import routes before database creation
-
-# Initialize database and create admin user
-with app.app_context():
-    db.create_all()
-    app.logger.info('Database tables created')
-    
-    # Create admin user if it doesn't exist
-    from models import User
-    from werkzeug.security import generate_password_hash
-    
-    admin_email = "sujitdeshmukh2812@gmail.com"
-    admin = User.query.filter_by(email=admin_email).first()
-    if not admin:
-        admin = User(
-            name="Sujit Deshmukh",
-            email=admin_email,
-            password_hash=generate_password_hash("Sujit@2812"),
-            is_admin=True
-        )
-        db.session.add(admin)
-        db.session.commit()
-        app.logger.info('Admin user created')
+from routes import *  # Import routes
