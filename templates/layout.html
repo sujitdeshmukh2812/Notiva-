@@ -223,32 +223,29 @@
             });
 
             // Ad Popup Logic
+            {% if current_user.is_authenticated %}
             const adPopupModal = new bootstrap.Modal(document.getElementById('adPopupModal'));
-            const adShown = sessionStorage.getItem('adShown');
-
-            if (!adShown) {
-                fetch('/get_popup_ad')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success && data.ad) {
-                            const ad = data.ad;
-                            let adHtml = '';
-                            if (ad.image_url) {
-                                adHtml += `<img src="${ad.image_url}" class="img-fluid mb-3" alt="${ad.title}">`;
-                            }
-                            adHtml += `<h4>${ad.title}</h4>`;
-                            adHtml += `<p>${ad.content}</p>`;
-                            if (ad.link_url) {
-                                adHtml += `<a href="${ad.link_url}" target="_blank" class="btn btn-primary">Learn More</a>`;
-                            }
-                            
-                            document.getElementById('adPopupContent').innerHTML = adHtml;
-                            adPopupModal.show();
-                            sessionStorage.setItem('adShown', 'true');
+            fetch('/get_popup_ad')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.ad) {
+                        const ad = data.ad;
+                        let adHtml = '';
+                        if (ad.image_url) {
+                            adHtml += `<img src="${ad.image_url}" class="img-fluid mb-3" alt="${ad.title}">`;
                         }
-                    })
-                    .catch(error => console.error('Error fetching popup ad:', error));
-            }
+                        adHtml += `<h4>${ad.title}</h4>`;
+                        adHtml += `<p>${ad.content}</p>`;
+                        if (ad.link_url) {
+                            adHtml += `<a href="${ad.link_url}" target="_blank" class="btn btn-primary">Learn More</a>`;
+                        }
+                        
+                        document.getElementById('adPopupContent').innerHTML = adHtml;
+                        adPopupModal.show();
+                    }
+                })
+                .catch(error => console.error('Error fetching popup ad:', error));
+            {% endif %}
         });
     </script>
     
