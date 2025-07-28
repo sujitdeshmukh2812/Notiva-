@@ -3,7 +3,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask
 from config import config
-from extensions import db, login_manager
+from extensions import login_manager
+from firebase_config import db, bucket
 
 def create_app(config_name=None):
     if config_name is None:
@@ -12,14 +13,7 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
-    # Set up database URI
-    database_url = os.environ.get('DATABASE_URL')
-    if database_url and database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-
     # Initialize extensions with the app
-    db.init_app(app)
     login_manager.init_app(app)
 
     # Ensure instance folder exists
@@ -35,7 +29,7 @@ def create_app(config_name=None):
     @login_manager.user_loader
     def load_user(user_id):
         from models import User
-        return User.query.get(int(user_id))
+        return User.get(user_id)
 
     # Register routes
     from routes import main as main_blueprint
