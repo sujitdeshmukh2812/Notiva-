@@ -5,7 +5,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from firebase_config import db, bucket
+from extensions import db
 from models import User, Material, Course, Year, Semester, Subject, Rating, Bookmark, Notification, Doubt, Ad
 import openai_helper
 
@@ -18,23 +18,15 @@ def allowed_file(filename):
 @main.route('/')
 def index():
     # Get recent approved materials for homepage
-    materials_ref = db.collection('materials').where('status', '==', 'approved').order_by('uploaded_at', direction='DESCENDING').limit(5)
-    recent_materials = [doc.to_dict() for doc in materials_ref.stream()]
+    recent_materials = Material.query.filter_by(status='approved').order_by(Material.uploaded_at.desc()).limit(5).all()
 
     # Get statistics
-    total_materials_ref = db.collection('materials').where('status', '==', 'approved')
-    total_materials = len([doc.id for doc in total_materials_ref.stream()])
-    
-    total_downloads = 0
-    for doc in total_materials_ref.stream():
-        total_downloads += doc.to_dict().get('download_count', 0)
+    total_materials = Material.query.filter_by(status='approved').count()
+    total_downloads = db.session.query(db.func.sum(Material.download_count)).scalar() or 0
 
     # Get active ads for homepage
-    ads_ref = db.collection('ads').where('is_active', '==', True).where('placement', '==', 'banner')
-    active_ads = [doc.to_dict() for doc in ads_ref.stream()]
-    
-    sidebar_ads_ref = db.collection('ads').where('is_active', '==', True).where('placement', '==', 'sidebar').limit(3)
-    sidebar_ads = [doc.to_dict() for doc in sidebar_ads_ref.stream()]
+    active_ads = Ad.query.filter_by(is_active=True, placement='banner').all()
+    sidebar_ads = Ad.query.filter_by(is_active=True, placement='sidebar').limit(3).all()
 
     return render_template('index.html',
                          recent_materials=recent_materials,
@@ -56,10 +48,10 @@ def login():
                 flash('Email and password are required.', 'error')
                 return render_template('login.html')
             
-            user = User.get_by_email(email)
+            user = User.query.filter_by(email=email).first()
             current_app.logger.info(f"User found: {user is not None}")
             
-            if user and check_password_hash(user.password_hash, password):
+            if user and user.check_password(password):
                 login_user(user)
                 current_app.logger.info(f"Login successful for {email}")
                 flash(f'Welcome back, {user.name}!', 'success')
@@ -98,17 +90,13 @@ def register():
             flash('Passwords do not match.', 'error')
         elif len(password) < 6:
             flash('Password must be at least 6 characters long.', 'error')
-        elif User.get_by_email(email):
+        elif User.query.filter_by(email=email).first():
             flash('Email already registered.', 'error')
         else:
-            user_id = str(uuid.uuid4())
-            user = User(
-                id=user_id,
-                name=name,
-                email=email,
-                password_hash=generate_password_hash(password)
-            )
-            user.save()
+            new_user = User(name=name, email=email)
+            new_user.set_password(password)
+            db.session.add(new_user)
+            db.session.commit()
             
             flash('Welcome to Notiva! Registration successful! Please log in.', 'success')
             return redirect(url_for('main.login'))
@@ -146,8 +134,8 @@ def upload():
                 flash('All fields are required.', 'error')
                 return redirect(request.url)
             
-            subject_doc = db.collection('subjects').document(subject_id).get()
-            if not subject_doc.exists or subject_doc.to_dict()['semester_id'] != semester_id:
+            subject = Subject.query.get(subject_id)
+            if not subject or subject.semester_id != int(semester_id):
                 flash('Invalid subject selection.', 'error')
                 return redirect(request.url)
             
@@ -157,17 +145,15 @@ def upload():
                     file_extension = original_filename.rsplit('.', 1)[1].lower()
                     unique_filename = f"{uuid.uuid4()}.{file_extension}"
                     
-                    blob = bucket.blob(f"materials/{unique_filename}")
-                    blob.upload_from_file(file)
+                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
+                    file.save(file_path)
                     
-                    file_size = file.tell()
+                    file_size = os.path.getsize(file_path)
                     
-                    material_id = str(uuid.uuid4())
-                    material = Material(
-                        id=material_id,
+                    new_material = Material(
                         filename=unique_filename,
                         original_filename=original_filename,
-                        description=description if description else None,
+                        description=description,
                         course_id=course_id,
                         year_id=year_id,
                         semester_id=semester_id,
@@ -178,7 +164,8 @@ def upload():
                         status='pending'
                     )
                     
-                    material.save()
+                    db.session.add(new_material)
+                    db.session.commit()
                     
                     flash('File uploaded successfully! It will be available after admin approval.', 'success')
                     return redirect(url_for('main.browse'))
@@ -196,8 +183,7 @@ def upload():
             return redirect(request.url)
     
     try:
-        courses_ref = db.collection('courses').order_by('name')
-        courses = [doc.to_dict() for doc in courses_ref.stream()]
+        courses = Course.query.order_by(Course.name).all()
         return render_template('upload.html', courses=courses)
     except Exception as e:
         current_app.logger.error(f"Error loading upload form: {str(e)}")
@@ -211,26 +197,25 @@ def browse():
     semester_filter = request.args.get('semester', '')
     course_filter = request.args.get('course', '')
     
-    query = db.collection('materials').where('status', '==', 'approved')
+    query = Material.query.filter_by(status='approved')
     
     if subject_filter:
-        query = query.where('subject', '==', subject_filter)
+        query = query.filter(Material.subject.has(name=subject_filter))
     if year_filter:
-        query = query.where('year', '==', year_filter)
+        query = query.filter(Material.year.has(name=year_filter))
     if semester_filter:
-        query = query.where('semester', '==', semester_filter)
+        query = query.filter(Material.semester.has(name=semester_filter))
     if course_filter:
-        query = query.where('course', '==', course_filter)
+        query = query.filter(Material.course.has(name=course_filter))
     
-    materials = [doc.to_dict() for doc in query.order_by('uploaded_at', direction='DESCENDING').stream()]
+    materials = query.order_by(Material.uploaded_at.desc()).all()
     
-    subjects = sorted(list(set([m['subject'] for m in materials if 'subject' in m])))
-    years = sorted(list(set([m['year'] for m in materials if 'year' in m])))
-    semesters = sorted(list(set([m['semester'] for m in materials if 'semester' in m])))
-    courses = sorted(list(set([m['course'] for m in materials if 'course' in m])))
+    subjects = sorted(list(set([m.subject.name for m in materials])))
+    years = sorted(list(set([m.year.name for m in materials])))
+    semesters = sorted(list(set([m.semester.name for m in materials])))
+    courses = sorted(list(set([m.course.name for m in materials])))
     
-    sidebar_ads_ref = db.collection('ads').where('is_active', '==', True).where('placement', '==', 'sidebar').limit(2)
-    sidebar_ads = [doc.to_dict() for doc in sidebar_ads_ref.stream()]
+    sidebar_ads = Ad.query.filter_by(is_active=True, placement='sidebar').limit(2).all()
     
     return render_template('browse.html', 
                          materials=materials,
@@ -246,33 +231,24 @@ def browse():
                              'course': course_filter
                          })
 
-@main.route('/material/<string:material_id>')
+@main.route('/material/<int:material_id>')
 def material_detail(material_id):
-    material_doc = db.collection('materials').document(material_id).get()
-    if not material_doc.exists:
-        abort(404)
+    material = Material.query.get_or_404(material_id)
     
-    material = material_doc.to_dict()
-    
-    if material['status'] != 'approved':
+    if material.status != 'approved':
         flash('This material is not available.', 'error')
         return redirect(url_for('main.browse'))
     
-    db.collection('materials').document(material_id).update({'view_count': material.get('view_count', 0) + 1})
+    material.view_count += 1
+    db.session.commit()
     
     is_bookmarked = False
     user_rating = None
     if current_user.is_authenticated:
-        bookmark_ref = db.collection('bookmarks').where('material_id', '==', material_id).where('user_id', '==', current_user.id).limit(1)
-        is_bookmarked = len([doc.id for doc in bookmark_ref.stream()]) > 0
-        
-        rating_ref = db.collection('ratings').where('material_id', '==', material_id).where('user_id', '==', current_user.id).limit(1)
-        user_rating_docs = [doc.to_dict() for doc in rating_ref.stream()]
-        if user_rating_docs:
-            user_rating = user_rating_docs[0]
+        is_bookmarked = Bookmark.query.filter_by(material_id=material_id, user_id=current_user.id).first() is not None
+        user_rating = Rating.query.filter_by(material_id=material_id, user_id=current_user.id).first()
             
-    ratings_ref = db.collection('ratings').where('material_id', '==', material_id).order_by('created_at', direction='DESCENDING')
-    ratings = [doc.to_dict() for doc in ratings_ref.stream()]
+    ratings = Rating.query.filter_by(material_id=material_id).order_by(Rating.created_at.desc()).all()
     
     return render_template('material_detail.html', 
                          material=material,
@@ -280,86 +256,52 @@ def material_detail(material_id):
                          user_rating=user_rating,
                          ratings=ratings)
 
-@main.route('/download/<string:material_id>')
+@main.route('/download/<int:material_id>')
 @login_required
 def download(material_id):
-    material_doc = db.collection('materials').document(material_id).get()
-    if not material_doc.exists:
-        abort(404)
-        
-    material = material_doc.to_dict()
+    material = Material.query.get_or_404(material_id)
     
-    if material['status'] != 'approved':
+    if material.status != 'approved':
         flash('This file is not available for download.', 'error')
         return redirect(url_for('main.browse'))
     
-    blob = bucket.blob(f"materials/{material['filename']}")
+    material.download_count += 1
+    db.session.commit()
     
-    if not blob.exists():
-        flash('File not found.', 'error')
-        return redirect(url_for('main.browse'))
-    
-    db.collection('materials').document(material_id).update({'download_count': material.get('download_count', 0) + 1})
-    
-    return redirect(blob.generate_signed_url(datetime.timedelta(seconds=300), method='GET'))
+    return send_file(os.path.join(current_app.config['UPLOAD_FOLDER'], material.filename), as_attachment=True)
 
-@main.route('/view/<string:material_id>')
+@main.route('/view/<int:material_id>')
 @login_required
 def view_material(material_id):
-    material_doc = db.collection('materials').document(material_id).get()
-    if not material_doc.exists:
-        abort(404)
-        
-    material = material_doc.to_dict()
+    material = Material.query.get_or_404(material_id)
     
-    if material['status'] != 'approved' and not current_user.is_admin:
+    if material.status != 'approved' and not current_user.is_admin:
         flash('This file is not available for viewing.', 'error')
         return redirect(url_for('main.browse'))
     
-    blob = bucket.blob(f"materials/{material['filename']}")
-    
-    if not blob.exists():
-        flash('File not found.', 'error')
-        return redirect(url_for('main.browse'))
-    
-    return redirect(blob.generate_signed_url(datetime.timedelta(seconds=300), method='GET'))
+    return send_file(os.path.join(current_app.config['UPLOAD_FOLDER'], material.filename))
 
 @main.route('/bookmarks')
 @login_required
 def bookmarks():
-    bookmarks_ref = db.collection('bookmarks').where('user_id', '==', current_user.id).order_by('created_at', direction='DESCENDING')
-    user_bookmarks = []
-    for doc in bookmarks_ref.stream():
-        bookmark = doc.to_dict()
-        material_doc = db.collection('materials').document(bookmark['material_id']).get()
-        if material_doc.exists:
-            bookmark['material'] = material_doc.to_dict()
-            user_bookmarks.append(bookmark)
-            
+    user_bookmarks = Bookmark.query.filter_by(user_id=current_user.id).order_by(Bookmark.created_at.desc()).all()
     return render_template('bookmarks.html', bookmarks=user_bookmarks)
 
-@main.route('/toggle_bookmark/<string:material_id>', methods=['POST'])
+@main.route('/toggle_bookmark/<int:material_id>', methods=['POST'])
 @login_required
 def toggle_bookmark(material_id):
-    material_doc = db.collection('materials').document(material_id).get()
-    if not material_doc.exists:
-        abort(404)
-        
-    bookmark_ref = db.collection('bookmarks').where('material_id', '==', material_id).where('user_id', '==', current_user.id).limit(1)
-    bookmark_docs = [doc for doc in bookmark_ref.stream()]
+    material = Material.query.get_or_404(material_id)
+    bookmark = Bookmark.query.filter_by(material_id=material_id, user_id=current_user.id).first()
     
-    if bookmark_docs:
-        bookmark_docs[0].reference.delete()
+    if bookmark:
+        db.session.delete(bookmark)
+        db.session.commit()
         flash('Removed from bookmarks.', 'info')
         is_bookmarked = False
     else:
-        bookmark_id = str(uuid.uuid4())
-        bookmark = Bookmark(
-            id=bookmark_id,
-            material_id=material_id,
-            user_id=current_user.id
-        )
-        bookmark.save()
+        new_bookmark = Bookmark(material_id=material_id, user_id=current_user.id)
+        db.session.add(new_bookmark)
+        db.session.commit()
         flash('Added to bookmarks.', 'success')
         is_bookmarked = True
     
@@ -368,12 +310,10 @@ def toggle_bookmark(material_id):
     
     return redirect(request.referrer or url_for('main.browse'))
 
-@main.route('/rate_material/<string:material_id>', methods=['POST'])
+@main.route('/rate_material/<int:material_id>', methods=['POST'])
 @login_required
 def rate_material(material_id):
-    material_doc = db.collection('materials').document(material_id).get()
-    if not material_doc.exists:
-        abort(404)
+    material = Material.query.get_or_404(material_id)
         
     rating_value = request.form.get('rating', type=int)
     comment = request.form.get('comment', '').strip()
@@ -382,38 +322,30 @@ def rate_material(material_id):
         flash('Invalid rating. Please select a rating between 1 and 5 stars.', 'error')
         return redirect(url_for('main.material_detail', material_id=material_id))
     
-    rating_ref = db.collection('ratings').where('material_id', '==', material_id).where('user_id', '==', current_user.id).limit(1)
-    rating_docs = [doc for doc in rating_ref.stream()]
+    rating = Rating.query.filter_by(material_id=material_id, user_id=current_user.id).first()
     
-    if rating_docs:
-        rating_docs[0].reference.update({
-            'rating': rating_value,
-            'comment': comment if comment else None
-        })
+    if rating:
+        rating.rating = rating_value
+        rating.comment = comment
         flash('Your rating has been updated.', 'success')
     else:
-        rating_id = str(uuid.uuid4())
         new_rating = Rating(
-            id=rating_id,
             material_id=material_id,
             user_id=current_user.id,
             rating=rating_value,
-            comment=comment if comment else None
+            comment=comment
         )
-        new_rating.save()
+        db.session.add(new_rating)
         flash('Thank you for your rating!', 'success')
     
+    db.session.commit()
     return redirect(url_for('main.material_detail', material_id=material_id))
 
 @main.route('/doubts')
 @login_required
 def doubts():
-    doubts_ref = db.collection('doubts').where('user_id', '==', current_user.id).order_by('created_at', direction='DESCENDING')
-    user_doubts = [doc.to_dict() for doc in doubts_ref.stream()]
-    
-    subjects_ref = db.collection('subjects').order_by('name')
-    subjects = [doc.to_dict() for doc in subjects_ref.stream()]
-    
+    user_doubts = Doubt.query.filter_by(user_id=current_user.id).order_by(Doubt.created_at.desc()).all()
+    subjects = Subject.query.order_by(Subject.name).all()
     return render_template('doubts.html', doubts=user_doubts, subjects=subjects)
 
 @main.route('/ask_doubt', methods=['POST'])
@@ -427,27 +359,24 @@ def ask_doubt():
         flash('Title and question are required.', 'error')
         return redirect(url_for('main.doubts'))
     
-    doubt_id = str(uuid.uuid4())
-    doubt = Doubt(
-        id=doubt_id,
+    subject = None
+    if subject_id:
+        subject = Subject.query.get(subject_id)
+        
+    ai_answer = openai_helper.answer_subject_doubt(question, subject.name if subject else None)
+    
+    new_doubt = Doubt(
         user_id=current_user.id,
-        subject_id=subject_id if subject_id else None,
+        subject_id=subject_id,
         title=title,
-        question=question
+        question=question,
+        answer=ai_answer,
+        is_answered=True,
+        answered_at=datetime.utcnow()
     )
     
-    subject_name = None
-    if subject_id:
-        subject_doc = db.collection('subjects').document(subject_id).get()
-        if subject_doc.exists:
-            subject_name = subject_doc.to_dict()['name']
-            
-    ai_answer = openai_helper.answer_subject_doubt(question, subject_name)
-    doubt.answer = ai_answer
-    doubt.is_answered = True
-    doubt.answered_at = datetime.utcnow()
-    
-    doubt.save()
+    db.session.add(new_doubt)
+    db.session.commit()
     
     flash('Your doubt has been answered!', 'success')
     return redirect(url_for('main.doubts'))
@@ -455,45 +384,39 @@ def ask_doubt():
 @main.route('/notifications')
 @login_required
 def notifications():
-    notifications_ref = db.collection('notifications').where('user_id', '==', current_user.id).order_by('created_at', direction='DESCENDING')
-    user_notifications = []
-    for doc in notifications_ref.stream():
-        notification = doc.to_dict()
-        user_notifications.append(notification)
-        if not notification.get('is_read', False):
-            doc.reference.update({'is_read': True})
-            
+    user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).all()
+    for notification in user_notifications:
+        if not notification.is_read:
+            notification.is_read = True
+    db.session.commit()
     return render_template('notifications.html', notifications=user_notifications)
 
-@main.route('/get_years/<string:course_id>')
+@main.route('/get_years/<int:course_id>')
 @login_required
 def get_years(course_id):
     try:
-        years_ref = db.collection('years').where('course_id', '==', course_id).order_by('name')
-        years = [{'id': doc.id, 'name': doc.to_dict()['name']} for doc in years_ref.stream()]
-        return jsonify(years)
+        years = Year.query.filter_by(course_id=course_id).order_by(Year.name).all()
+        return jsonify([{'id': year.id, 'name': year.name} for year in years])
     except Exception as e:
         current_app.logger.error(f"Error in get_years: {str(e)}")
         return jsonify({'error': 'Failed to fetch years'}), 500
 
-@main.route('/get_semesters/<string:year_id>')
+@main.route('/get_semesters/<int:year_id>')
 @login_required
 def get_semesters(year_id):
     try:
-        semesters_ref = db.collection('semesters').where('year_id', '==', year_id).order_by('name')
-        semesters = [{'id': doc.id, 'name': doc.to_dict()['name']} for doc in semesters_ref.stream()]
-        return jsonify(semesters)
+        semesters = Semester.query.filter_by(year_id=year_id).order_by(Semester.name).all()
+        return jsonify([{'id': semester.id, 'name': semester.name} for semester in semesters])
     except Exception as e:
         current_app.logger.error(f"Error in get_semesters: {str(e)}")
         return jsonify({'error': 'Failed to fetch semesters'}), 500
 
-@main.route('/get_subjects/<string:semester_id>')
+@main.route('/get_subjects/<int:semester_id>')
 @login_required
 def get_subjects(semester_id):
     try:
-        subjects_ref = db.collection('subjects').where('semester_id', '==', semester_id).order_by('name')
-        subjects = [{'id': doc.id, 'name': doc.to_dict()['name']} for doc in subjects_ref.stream()]
-        return jsonify(subjects)
+        subjects = Subject.query.filter_by(semester_id=semester_id).order_by(Subject.name).all()
+        return jsonify([{'id': subject.id, 'name': subject.name} for subject in subjects])
     except Exception as e:
         current_app.logger.error(f"Error in get_subjects: {str(e)}")
         return jsonify({'error': 'Failed to fetch subjects'}), 500
@@ -515,25 +438,20 @@ def admin_dashboard():
     
     try:
         stats = {
-            'total_users': len([doc.id for doc in db.collection('users').stream()]),
-            'total_materials': len([doc.id for doc in db.collection('materials').stream()]),
-            'pending_materials': len([doc.id for doc in db.collection('materials').where('status', '==', 'pending').stream()]),
-            'approved_materials': len([doc.id for doc in db.collection('materials').where('status', '==', 'approved').stream()]),
-            'total_doubts': len([doc.id for doc in db.collection('doubts').stream()]),
-            'unanswered_doubts': len([doc.id for doc in db.collection('doubts').where('is_answered', '==', False).stream()]),
-            'total_ads': len([doc.id for doc in db.collection('ads').stream()]),
-            'active_ads': len([doc.id for doc in db.collection('ads').where('is_active', '==', True).stream()]),
-            'total_downloads': sum([doc.to_dict().get('download_count', 0) for doc in db.collection('materials').stream()])
+            'total_users': User.query.count(),
+            'total_materials': Material.query.count(),
+            'pending_materials': Material.query.filter_by(status='pending').count(),
+            'approved_materials': Material.query.filter_by(status='approved').count(),
+            'total_doubts': Doubt.query.count(),
+            'unanswered_doubts': Doubt.query.filter_by(is_answered=False).count(),
+            'total_ads': Ad.query.count(),
+            'active_ads': Ad.query.filter_by(is_active=True).count(),
+            'total_downloads': db.session.query(db.func.sum(Material.download_count)).scalar() or 0
         }
         
-        recent_materials_ref = db.collection('materials').order_by('uploaded_at', direction='DESCENDING').limit(5)
-        recent_materials = [doc.to_dict() for doc in recent_materials_ref.stream()]
-        
-        recent_doubts_ref = db.collection('doubts').order_by('created_at', direction='DESCENDING').limit(5)
-        recent_doubts = [doc.to_dict() for doc in recent_doubts_ref.stream()]
-        
-        recent_users_ref = db.collection('users').order_by('created_at', direction='DESCENDING').limit(5)
-        recent_users = [doc.to_dict() for doc in recent_users_ref.stream()]
+        recent_materials = Material.query.order_by(Material.uploaded_at.desc()).limit(5).all()
+        recent_doubts = Doubt.query.order_by(Doubt.created_at.desc()).limit(5).all()
+        recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
         
         return render_template('admin/dashboard.html', 
                             stats=stats,
@@ -553,71 +471,66 @@ def admin_notes():
     
     status_filter = request.args.get('status', 'all')
     
-    materials_ref = db.collection('materials')
+    query = Material.query
     if status_filter != 'all':
-        materials_ref = materials_ref.where('status', '==', status_filter)
+        query = query.filter_by(status=status_filter)
         
-    materials = [doc.to_dict() for doc in materials_ref.order_by('uploaded_at', direction='DESCENDING').stream()]
+    materials = query.order_by(Material.uploaded_at.desc()).all()
     
     return render_template('admin/notes_management.html', materials=materials, status_filter=status_filter)
 
-@main.route('/admin/approve_material/<string:material_id>')
+@main.route('/admin/approve_material/<int:material_id>')
 @login_required
 def approve_material(material_id):
     if not current_user.is_admin:
         abort(403)
     
-    material_ref = db.collection('materials').document(material_id)
-    material_ref.update({'status': 'approved', 'reviewed_at': datetime.utcnow()})
+    material = Material.query.get_or_404(material_id)
+    material.status = 'approved'
+    material.reviewed_at = datetime.utcnow()
     
-    material = material_ref.get().to_dict()
-    
-    notification_id = str(uuid.uuid4())
     notification = Notification(
-        id=notification_id,
-        user_id=material['uploader_id'],
+        user_id=material.uploader_id,
         title='Material Approved',
-        message=f'Your uploaded material "{material["original_filename"]}" has been approved and is now available.',
+        message=f'Your uploaded material "{material.original_filename}" has been approved and is now available.',
         type='upload_approved'
     )
-    notification.save()
+    db.session.add(notification)
+    db.session.commit()
     
-    flash(f'Material "{material["original_filename"]}" approved successfully!', 'success')
+    flash(f'Material "{material.original_filename}" approved successfully!', 'success')
     return redirect(url_for('main.admin_notes'))
 
-@main.route('/admin/reject_material/<string:material_id>')
+@main.route('/admin/reject_material/<int:material_id>')
 @login_required
 def reject_material(material_id):
     if not current_user.is_admin:
         abort(403)
     
-    material_ref = db.collection('materials').document(material_id)
-    material_ref.update({'status': 'rejected', 'reviewed_at': datetime.utcnow()})
+    material = Material.query.get_or_404(material_id)
+    material.status = 'rejected'
+    material.reviewed_at = datetime.utcnow()
+    db.session.commit()
     
-    material = material_ref.get().to_dict()
-    
-    flash(f'Material "{material["original_filename"]}" rejected.', 'warning')
+    flash(f'Material "{material.original_filename}" rejected.', 'warning')
     return redirect(url_for('main.admin_notes'))
 
-@main.route('/admin/delete_material/<string:material_id>')
+@main.route('/admin/delete_material/<int:material_id>')
 @login_required
 def delete_material(material_id):
     if not current_user.is_admin:
         abort(403)
     
-    material_doc = db.collection('materials').document(material_id).get()
-    if not material_doc.exists:
-        abort(404)
-        
-    material = material_doc.to_dict()
+    material = Material.query.get_or_404(material_id)
     
-    blob = bucket.blob(f"materials/{material['filename']}")
-    if blob.exists():
-        blob.delete()
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], material.filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
         
-    db.collection('materials').document(material_id).delete()
+    db.session.delete(material)
+    db.session.commit()
     
-    flash(f'Material "{material["original_filename"]}" deleted successfully!', 'success')
+    flash(f'Material "{material.original_filename}" deleted successfully!', 'success')
     return redirect(url_for('main.admin_notes'))
 
 @main.route('/admin/doubts')

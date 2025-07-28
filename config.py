@@ -3,14 +3,16 @@ from datetime import timedelta
 
 class Config:
     # Basic Flask config
-    SECRET_KEY = os.environ.get('SESSION_SECRET', 'your-secret-key-here')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here')
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     
-    # Firebase
-    FIREBASE_CREDENTIALS_PATH = os.environ.get('FIREBASE_CREDENTIALS_PATH')
-    FIREBASE_STORAGE_BUCKET = os.environ.get('FIREBASE_STORAGE_BUCKET')
+    # SQLAlchemy
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # File Upload
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
