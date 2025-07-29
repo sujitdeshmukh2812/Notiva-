@@ -524,23 +524,7 @@ def reject_material(material_id):
     flash(f'Material "{material.original_filename}" rejected.', 'warning')
     return redirect(url_for('main.admin_notes'))
 
-@main.route('/admin/delete_material/<int:material_id>')
-@login_required
-def delete_material(material_id):
-    if not current_user.is_admin:
-        abort(403)
-    
-    material = Material.query.get_or_404(material_id)
-    
-    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], material.filename)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        
-    db.session.delete(material)
-    db.session.commit()
-    
-    flash(f'Material "{material.original_filename}" deleted successfully!', 'success')
-    return redirect(url_for('main.admin_notes'))
+
 
 @main.route('/admin/doubts')
 @login_required
@@ -673,6 +657,36 @@ def delete_ad(ad_id):
     
     flash(f'Ad "{ad.title}" deleted successfully!', 'success')
     return redirect(url_for('main.admin_ads'))
+
+@main.route('/admin/delete_material/<int:material_id>')
+@login_required
+def delete_material(material_id):
+    if not current_user.is_admin:
+        abort(403)
+    
+    material = Material.query.get_or_404(material_id)
+    
+    try:
+        # Delete the file from filesystem
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], material.filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        
+        # Delete related records first
+        Rating.query.filter_by(material_id=material.id).delete()
+        Bookmark.query.filter_by(material_id=material.id).delete()
+        
+        # Delete the material
+        db.session.delete(material)
+        db.session.commit()
+        
+        flash(f'Material "{material.original_filename}" deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting material: {str(e)}")
+        flash('Error occurred while deleting material.', 'error')
+    
+    return redirect(url_for('main.admin_notes'))
 
 @main.route('/admin/academic')
 @login_required

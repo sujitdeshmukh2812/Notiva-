@@ -68,6 +68,19 @@ class Material(db.Model):
     ratings = db.relationship('Rating', backref='material', lazy=True)
     bookmarks = db.relationship('Bookmark', backref='material', lazy=True)
     uploader = db.relationship('User', backref='materials', lazy=True)
+    course = db.relationship('Course', backref='materials', lazy=True)
+    year = db.relationship('Year', backref='materials', lazy=True)
+    semester = db.relationship('Semester', backref='materials', lazy=True)
+    
+    @property
+    def average_rating(self):
+        if not self.ratings:
+            return 0
+        return sum(rating.rating for rating in self.ratings) / len(self.ratings)
+    
+    @property
+    def rating_count(self):
+        return len(self.ratings)
 
 class Rating(db.Model):
     id = db.Column(db.Integer, primary_key=True)

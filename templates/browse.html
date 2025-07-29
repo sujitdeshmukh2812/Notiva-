@@ -259,7 +259,7 @@
                     </div>
                     <div class="card-body">
                         {% for subject in subjects[:8] %}
-                            <a href="{{ url_for('browse', subject=subject) }}" 
+                            <a href="{{ url_for('main.browse', subject=subject) }}" 
                                class="btn btn-outline-primary btn-sm me-1 mb-2">
                                 {{ subject }}
                             </a>
