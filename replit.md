@@ -148,3 +148,30 @@ Preferred communication style: Simple, everyday language.
 - **File Storage**: Local filesystem (can be extended to cloud storage)
 - **API Rate Limiting**: Consider implementing for OpenAI API calls
 - **Caching**: No current implementation (opportunity for optimization)
+
+## Deployment Information
+
+### Recent Changes (July 29, 2025)
+- **Migration Complete**: Successfully migrated from Replit Agent to standard Replit environment
+- **Database**: PostgreSQL integration with proper connection pooling
+- **Authentication Fix**: Resolved session secret key configuration
+- **Admin Account**: Created admin user (sujitdeshmukh2812@gmail.com / admin123)
+- **Deployment Ready**: Configured for Render deployment with Neon database
+
+### Render Deployment Setup
+- **Platform**: Render.com web service
+- **Database**: Neon PostgreSQL (serverless)
+- **Build Script**: `build.sh` - installs dependencies and creates database tables
+- **Start Command**: `gunicorn main:app --bind 0.0.0.0:$PORT`
+- **Python Version**: 3.11.9 (specified in runtime.txt)
+
+### Environment Variables for Render
+- `DATABASE_URL`: postgresql://neondb_owner:npg_AkeGQ5IBMNy4dep-withered-hill-aing4uwt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+- `SESSION_SECRET`: Auto-generated secure key
+- `OPENAI_API_KEY`: Required for AI-powered Q&A features
+- `FLASK_ENV`: production
+
+### Admin Access
+- **Email**: sujitdeshmukh2812@gmail.com
+- **Password**: admin123
+- **Dashboard**: Accessible after login at /admin_dashboard
