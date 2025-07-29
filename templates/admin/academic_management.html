@@ -565,19 +565,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (modalId === 'courseModal') {
                 titleSpan.textContent = 'Add Course';
                 saveButton.textContent = 'Create Course';
-                form.action = '{{ url_for("create_course") }}';
+                form.action = '{{ url_for("main.create_course") }}';
             } else if (modalId === 'yearModal') {
                 titleSpan.textContent = 'Add Year';
                 saveButton.textContent = 'Create Year';
-                form.action = '{{ url_for("create_year") }}';
+                form.action = '{{ url_for("main.create_year") }}';
             } else if (modalId === 'semesterModal') {
                 titleSpan.textContent = 'Add Semester';
                 saveButton.textContent = 'Create Semester';
-                form.action = '{{ url_for("create_semester") }}';
+                form.action = '{{ url_for("main.create_semester") }}';
             } else if (modalId === 'subjectModal') {
                 titleSpan.textContent = 'Add Subject';
                 saveButton.textContent = 'Create Subject';
-                form.action = '{{ url_for("create_subject") }}';
+                form.action = '{{ url_for("main.create_subject") }}';
             }
         });
     });

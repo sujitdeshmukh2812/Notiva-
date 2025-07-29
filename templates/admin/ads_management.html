@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('createAdModal').addEventListener('hidden.bs.modal', function() {
         document.getElementById('modalTitle').textContent = 'Create New Ad';
         document.getElementById('saveButtonText').textContent = 'Create Ad';
-        document.getElementById('adForm').action = '{{ url_for("create_ad") }}';
+        document.getElementById('adForm').action = '{{ url_for("main.create_ad") }}';
         document.getElementById('adForm').reset();
         document.getElementById('adPreview').innerHTML = `
             <div class="text-muted">
