@@ -117,3 +117,6 @@ class Ad(db.Model):
     view_count = db.Column(db.Integer, default=0)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    creator = db.relationship('User', backref='ads', lazy=True)
