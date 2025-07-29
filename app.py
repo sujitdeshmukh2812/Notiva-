@@ -10,7 +10,7 @@ load_dotenv()
 
 def create_app(config_name=None):
     if config_name is None:
-        config_name = os.getenv('FLASK_CONFIG', 'default')
+        config_name = os.getenv('FLASK_CONFIG') or ('production' if os.getenv('FLASK_ENV') == 'production' else 'default')
         
     app = Flask(__name__)
     app.config.from_object(config[config_name])
@@ -40,7 +40,7 @@ def create_app(config_name=None):
     app.register_blueprint(main_blueprint)
 
     # Set up logging
-    if app.config.get('LOG_TO_STDOUT', False):
+    if app.config.get('LOG_TO_STDOUT', False) or os.environ.get('FLASK_ENV') == 'production':
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(logging.INFO)
         app.logger.addHandler(stream_handler)
@@ -57,5 +57,13 @@ def create_app(config_name=None):
 
     app.logger.setLevel(logging.INFO)
     app.logger.info('Notiva startup')
+    
+    # Create database tables
+    with app.app_context():
+        try:
+            db.create_all()
+            app.logger.info('Database tables created successfully')
+        except Exception as e:
+            app.logger.error(f'Error creating database tables: {e}')
 
     return app

@@ -11,11 +11,16 @@ from werkzeug.security import generate_password_hash
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import app, db
+from app import create_app
+from extensions import db
 from models import User
 
 def create_admin():
+    app = create_app()
     with app.app_context():
+        # Create tables if they don't exist
+        db.create_all()
+        
         # Admin credentials
         admin_email = "sujitdeshmukh2812@gmail.com"
         admin_name = "Sujit Deshmukh"
