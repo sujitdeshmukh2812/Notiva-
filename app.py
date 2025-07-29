@@ -70,7 +70,7 @@ with app.app_context():
     app.register_blueprint(main_blueprint)
     
     # Login manager configuration (after blueprint registration)
-    login_manager.login_view = 'main.login'
+    login_manager.login_view = 'main.login'  # type: ignore
     login_manager.login_message = 'Please log in to access this page.'
 
     db.create_all()

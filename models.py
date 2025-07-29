@@ -74,13 +74,14 @@ class Material(db.Model):
     
     @property
     def average_rating(self):
-        if not self.ratings:
+        ratings_list = list(self.ratings)
+        if not ratings_list:
             return 0
-        return sum(rating.rating for rating in self.ratings) / len(self.ratings)
+        return sum(rating.rating for rating in ratings_list) / len(ratings_list)
     
     @property
     def rating_count(self):
-        return len(self.ratings)
+        return len(list(self.ratings))
 
 class Rating(db.Model):
     id = db.Column(db.Integer, primary_key=True)
