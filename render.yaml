@@ -16,6 +16,8 @@ services:
         fromDatabase:
           name: notiva-db
           property: connectionString
+      - key: OPENAI_API_KEY
+        value: ""
 
 databases:
   - name: notiva-db
