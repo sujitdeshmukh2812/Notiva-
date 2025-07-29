@@ -1,208 +1,136 @@
-# Notiva - Academic Notes Management System
+# Notiva - Educational Study Materials Platform
 
-## 🎓 About
-Notiva is a comprehensive academic notes management system that allows students to:
-- Upload and share academic notes
-- Browse notes by course, year, semester, and subject
-- Ask and answer academic doubts
-- Admin panel for complete academic structure management
+A modern Flask-based web application designed for educational institutions to facilitate the sharing, browsing, and downloading of study materials among students.
 
-## 🚀 Local Development Setup
+## Features
+
+### 🎓 Academic Management
+- **Hierarchical Structure**: Course → Year → Semester → Subject organization
+- **Dynamic Content**: Admin-controlled academic structure management
+- **Material Categorization**: Organized study materials by academic hierarchy
+
+### 👥 User Management
+- **Authentication**: Secure email/password login system
+- **User Roles**: Regular users and administrators
+- **Profile Management**: User account creation and management
+
+### 📚 Material Management
+- **File Upload**: Support for PDF, DOC, DOCX, PPT, images, and more
+- **Status Workflow**: Pending → Approved → Published material flow
+- **Download Tracking**: Usage statistics and analytics
+- **File Validation**: Size limits (16MB) and extension filtering
+
+### 🤖 AI Integration
+- **OpenAI GPT-4o**: AI-powered question answering system
+- **Doubt Resolution**: Student Q&A with intelligent responses
+- **Subject Context**: Context-aware educational assistance
+
+### 🎯 Additional Features
+- **Bookmarks**: Save materials for later access
+- **Rating System**: 5-star rating for materials
+- **Notifications**: Real-time updates for users
+- **Search & Filter**: Advanced filtering by academic structure
+- **Admin Dashboard**: Comprehensive administration panel
+- **Advertisement System**: Banner and sidebar ad management
+
+## Technology Stack
+
+### Backend
+- **Framework**: Flask (Python)
+- **Database**: PostgreSQL with SQLAlchemy ORM
+- **Authentication**: Flask-Login
+- **Security**: Werkzeug password hashing
+- **AI**: OpenAI GPT-4o API
+
+### Frontend
+- **Template Engine**: Jinja2
+- **UI Framework**: Bootstrap 5 (Dark Theme)
+- **Icons**: Font Awesome 6.4.0
+- **JavaScript**: Vanilla JavaScript with Bootstrap components
+
+### Deployment
+- **Platform**: Replit / Render.com
+- **Database**: Neon PostgreSQL (Serverless)
+- **Server**: Gunicorn WSGI server
+
+## Installation & Setup
 
 ### Prerequisites
-- Python 3.11 or higher
-- pip (Python package manager)
-- PostgreSQL (for production) or SQLite (for development)
-
-### Step 1: Clone the Repository
-```bash
-git clone <repository-url>
-cd NotivaFlow
-```
-
-### Step 2: Create Virtual Environment (Recommended)
-```bash
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/Mac:
-source venv/bin/activate
-```
-
-### Step 3: Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### Step 4: Set Up Environment Variables
-```bash
-cp .env.example .env
-# Edit .env file with your configuration
-```
-
-### Step 5: Initialize Database
-```bash
-python init_db.py
-```
-
-### Step 6: Run the Application
-```bash
-python main.py
-```
-The application will be available at: http://127.0.0.1:5000
-
-## 🚀 Production Deployment (Render)
-
-### Prerequisites
-- Render account
-- Neon database (PostgreSQL)
+- Python 3.11+
+- PostgreSQL database
 - OpenAI API key (optional, for AI features)
 
-### Step 1: Set Up Neon Database
-1. Create a Neon database account
-2. Create a new database
-3. Copy the connection string
-
-### Step 2: Deploy to Render
-1. Connect your GitHub repository to Render
-2. Create a new Web Service
-3. Set the following environment variables:
-   - `DATABASE_URL`: Your Neon database connection string
-   - `SECRET_KEY`: A secure random string
-   - `OPENAI_API_KEY`: Your OpenAI API key (optional)
-   - `FLASK_ENV`: production
-   - `FLASK_CONFIG`: production
-
-### Step 3: Access Your Application
-After deployment, your application will be available at your Render URL.
-
-## 🔑 Default Admin Credentials
-- Email: sujitdeshmukh2812@gmail.com
-- Password: Sujit@2812
-
-## 🌍 Environment Variables
-
-### Required for Production
-- `DATABASE_URL`: PostgreSQL connection string
-- `SECRET_KEY`: Flask secret key for sessions
-- `FLASK_ENV`: Set to 'production'
-- `FLASK_CONFIG`: Set to 'production'
-
-### Optional
-- `OPENAI_API_KEY`: For AI-powered doubt resolution
-- `LOG_TO_STDOUT`: Set to 'true' for production logging
-
-## 📁 Project Structure
-```
-NotivaFlow/
-├── app.py              # Application configuration
-├── main.py            # Application entry point
-├── wsgi.py            # WSGI entry point for production
-├── models.py          # Database models
-├── routes.py          # Application routes
-├── config.py          # Configuration settings
-├── extensions.py      # Flask extensions
-├── init_db.py         # Database initialization script
-├── static/            # Static files (CSS, JS)
-├── templates/         # HTML templates
-├── requirements.txt   # Python dependencies
-├── render.yaml        # Render deployment configuration
-├── Procfile          # Process file for deployment
-└── runtime.txt       # Python version specification
+### Environment Variables
+```bash
+DATABASE_URL=postgresql://username:password@host:port/database
+SESSION_SECRET=your-secret-key-here
+OPENAI_API_KEY=your-openai-api-key-here
 ```
 
-## 🔑 Features
-1. **Academic Structure Management**
-   - Manage courses, years, semesters, and subjects
-   - Hierarchical organization of academic content
+### Local Development
+1. Clone the repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Set up environment variables
+4. Run database migrations: `python create_admin.py`
+5. Start the application: `gunicorn --bind 0.0.0.0:5000 main:app`
 
-2. **Notes Management**
-   - Upload notes with proper categorization
-   - Browse and search notes
-   - Download approved notes
-   - Rating and review system
-   - Bookmark functionality
+## Admin Access
 
-3. **User Management**
-   - User registration and authentication
-   - Admin and regular user roles
-   - Profile management
-   - Notification system
+Default admin credentials:
+- **Email**: sujitdeshmukh2812@gmail.com
+- **Password**: Sujit@2812
 
-4. **Admin Features**
-   - Complete academic structure management
-   - Notes approval system
-   - User management
-   - Analytics dashboard
-   - Advertisement management
+## Project Structure
 
-5. **AI Features**
-   - AI-powered doubt resolution
-   - Automatic document summarization
-   - Subject-specific question answering
+```
+├── app.py              # Flask application factory
+├── models.py           # Database models
+├── routes.py           # Application routes
+├── main.py             # Application entry point
+├── create_admin.py     # Admin user creation script
+├── openai_helper.py    # AI integration helper
+├── templates/          # Jinja2 templates
+├── static/            # Static assets (CSS, JS, images)
+│   ├── css/
+│   ├── js/
+│   └── uploads/       # User uploaded files
+└── requirements.txt   # Python dependencies
+```
 
-## 💡 Usage
+## Key Components
 
-### For Students
-1. Register an account
-2. Browse available notes
-3. Upload your notes
-4. Ask doubts and get AI-powered answers
-5. Rate and bookmark materials
+### Database Models
+- **User**: User accounts and authentication
+- **Course/Year/Semester/Subject**: Academic hierarchy
+- **Material**: Study materials and files
+- **Rating/Bookmark**: User interactions
+- **Notification**: System notifications
+- **Doubt**: AI-powered Q&A system
+- **Ad**: Advertisement management
 
-### For Admins
-1. Log in with admin credentials
-2. Access admin dashboard
-3. Manage academic structure
-4. Approve/reject notes
-5. Manage users
-6. View analytics and manage advertisements
-
-## 🔧 Database Schema
-The application uses a relational database with the following main entities:
-- Users (with admin roles)
-- Academic structure (Courses → Years → Semesters → Subjects)
-- Materials (linked to academic structure)
-- Ratings, Bookmarks, Notifications
-- Doubts (with AI-powered answers)
-- Advertisements
-
-## 🛡️ Security Features
+### Security Features
 - Password hashing with Werkzeug
-- Session management with Flask-Login
+- File upload validation and size limits
+- Role-based access control
 - CSRF protection
-- File upload validation
-- SQL injection prevention with SQLAlchemy ORM
-- SSL/TLS support for production
+- SSL/TLS database connections
 
-## 📝 Contributing
+## Contributing
+
 1. Fork the repository
 2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-## 🐛 Troubleshooting
+## License
 
-### Common Issues
-1. **Database Connection Error**: Ensure DATABASE_URL is correctly set
-2. **File Upload Issues**: Check UPLOAD_FOLDER permissions
-3. **AI Features Not Working**: Verify OPENAI_API_KEY is set
-4. **Admin Access Denied**: Run `python create_admin.py` to create admin user
+This project is developed for educational purposes.
 
-### Logs
-- Development: Check console output
-- Production: Check Render logs or application logs
+## Support
 
-## 🤝 Support
-For support, email NOTIVA.OFFICIAL@GMAIL.COM
+For support and questions, please contact the development team or create an issue in the repository.
 
-## 📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+---
 
-## 🙏 Acknowledgments
-- Flask framework and its extensions
-- Bootstrap for UI components
-- OpenAI for AI capabilities
-- Neon for database hosting
-- Render for application hosting
+**Notiva** - Empowering Education Through Technology 🎓
