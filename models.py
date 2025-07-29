@@ -67,6 +67,7 @@ class Material(db.Model):
     view_count = db.Column(db.Integer, default=0)
     ratings = db.relationship('Rating', backref='material', lazy=True)
     bookmarks = db.relationship('Bookmark', backref='material', lazy=True)
+    uploader = db.relationship('User', backref='materials', lazy=True)
 
 class Rating(db.Model):
     id = db.Column(db.Integer, primary_key=True)
