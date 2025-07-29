@@ -156,7 +156,7 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL integration with proper SSL configuration and connection pooling
 - **Authentication Fix**: Resolved session secret key configuration
 - **URL Routing Fixed**: Resolved all Flask blueprint URL routing issues in templates
-- **Admin Account**: Created admin user (sujitdeshmukh2812@gmail.com / admin123)
+- **Admin Account**: Created admin user (sujitdeshmukh2812@gmail.com / Sujit@2812)
 - **Full Functionality**: All pages now load correctly - homepage, admin dashboard, user features
 - **Deployment Ready**: Configured for Render deployment with Neon database
 
@@ -175,5 +175,5 @@ Preferred communication style: Simple, everyday language.
 
 ### Admin Access
 - **Email**: sujitdeshmukh2812@gmail.com
-- **Password**: admin123
+- **Password**: Sujit@2812
 - **Dashboard**: Accessible after login at /admin_dashboard
