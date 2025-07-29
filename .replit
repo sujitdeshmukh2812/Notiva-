@@ -1,26 +1,8 @@
-modules = ["python-3.11", "postgresql-16"]
+modules = ["web", "python-3.11", "nodejs-20", "nix"]
 
 [nix]
 channel = "stable-25_05"
-packages = [
-    "openssl", 
-    "postgresql",
-    "python311",
-    "python311Packages.pip",
-    "python311Packages.gunicorn",
-    "python311Packages.flask",
-    "python311Packages.flask-sqlalchemy",
-    "python311Packages.flask-login",
-    "python311Packages.werkzeug",
-    "python311Packages.sqlalchemy",
-    "python311Packages.python-dotenv",
-    "python311Packages.openai",
-    "python311Packages.whitenoise",
-    "python311Packages.python-decouple",
-    "python311Packages.jinja2",
-    "python311Packages.itsdangerous",
-    "python311Packages.click"
-]
+packages = ["openssl", "postgresql", "python311", "python311Packages.click", "python311Packages.flask", "python311Packages.flask-login", "python311Packages.flask-sqlalchemy", "python311Packages.gunicorn", "python311Packages.itsdangerous", "python311Packages.jinja2", "python311Packages.openai", "python311Packages.pip", "python311Packages.python-decouple", "python311Packages.python-dotenv", "python311Packages.sqlalchemy", "python311Packages.werkzeug", "python311Packages.whitenoise"]
 
 [deployment]
 deploymentTarget = "autoscale"

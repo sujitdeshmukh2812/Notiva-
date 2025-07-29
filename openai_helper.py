@@ -1,15 +1,13 @@
 import os
-import openai
-from dotenv import load_dotenv
+from openai import OpenAI
 
-load_dotenv()
-
-# Get API key from environment variable
-openai.api_key = os.getenv('OPENAI_API_KEY')
+# Initialize OpenAI client only if API key is available
+api_key = os.environ.get('OPENAI_API_KEY')
+client = OpenAI(api_key=api_key) if api_key else None
 
 def check_openai_config():
     """Check if OpenAI is properly configured"""
-    return bool(openai.api_key)
+    return bool(api_key and client)
 
 def answer_subject_doubt(question, subject_name=None):
     """
@@ -23,7 +21,7 @@ def answer_subject_doubt(question, subject_name=None):
         if subject_name:
             system_message += f"Focus on {subject_name} related concepts."
         
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_message},
@@ -33,7 +31,7 @@ def answer_subject_doubt(question, subject_name=None):
             temperature=0.7
         )
         
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content
         
     except Exception as e:
         return f"I'm sorry, I couldn't process your question right now. Please try again later."
@@ -50,7 +48,7 @@ def generate_document_summary(document_title, document_description=None):
         if document_description:
             content += f"\nDescription: {document_description}"
         
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {
@@ -63,7 +61,7 @@ def generate_document_summary(document_title, document_description=None):
             temperature=0.5
         )
         
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content
         
     except Exception as e:
         return "Auto-summary unavailable"

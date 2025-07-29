@@ -8,37 +8,37 @@
     <div class="admin-nav">
         <ul class="nav nav-pills justify-content-center">
             <li class="nav-item">
-                <a class="nav-link active" href="{{ url_for('admin_dashboard') }}">
+                <a class="nav-link active" href="{{ url_for('main.admin_dashboard') }}">
                     <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin_notes') }}">
+                <a class="nav-link" href="{{ url_for('main.admin_notes') }}">
                     <i class="fas fa-file-alt me-1"></i>Notes Management
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin_doubts') }}">
+                <a class="nav-link" href="{{ url_for('main.admin_doubts') }}">
                     <i class="fas fa-question-circle me-1"></i>Doubts
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin_ads') }}">
+                <a class="nav-link" href="{{ url_for('main.admin_ads') }}">
                     <i class="fas fa-bullhorn me-1"></i>Ads Manager
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin_academic') }}">
+                <a class="nav-link" href="{{ url_for('main.admin_academic') }}">
                     <i class="fas fa-university me-1"></i>Academic
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin_users') }}">
+                <a class="nav-link" href="{{ url_for('main.admin_users') }}">
                     <i class="fas fa-users me-1"></i>Users
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                <a class="nav-link" href="{{ url_for('main.admin_analytics') }}">
                     <i class="fas fa-chart-bar me-1"></i>Analytics
                 </a>
             </li>
@@ -88,7 +88,7 @@
                     <div class="progress-bar bg-warning" role="progressbar" style="width: 60%"></div>
                 </div>
                 {% if stats.pending_materials > 0 %}
-                    <a href="{{ url_for('admin_notes', status='pending') }}" class="btn btn-sm btn-warning mt-2">
+                    <a href="{{ url_for('main.admin_notes', status='pending') }}" class="btn btn-sm btn-warning mt-2">
                         Review Now
                     </a>
                 {% endif %}
@@ -145,7 +145,7 @@
                     <h6 class="mb-0">
                         <i class="fas fa-file-alt me-2"></i>Recent Materials
                     </h6>
-                    <a href="{{ url_for('admin_notes') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('main.admin_notes') }}" class="btn btn-sm btn-outline-primary">
                         View All
                     </a>
                 </div>
@@ -182,7 +182,7 @@
                     <h6 class="mb-0">
                         <i class="fas fa-question-circle me-2"></i>Recent Doubts
                     </h6>
-                    <a href="{{ url_for('admin_doubts') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('main.admin_doubts') }}" class="btn btn-sm btn-outline-primary">
                         View All
                     </a>
                 </div>
@@ -219,7 +219,7 @@
                     <h6 class="mb-0">
                         <i class="fas fa-users me-2"></i>Recent Users
                     </h6>
-                    <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('main.admin_users') }}" class="btn btn-sm btn-outline-primary">
                         View All
                     </a>
                 </div>
@@ -264,27 +264,27 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3 mb-3">
-                            <a href="{{ url_for('admin_notes', status='pending') }}" class="btn btn-warning w-100">
+                            <a href="{{ url_for('main.admin_notes', status='pending') }}" class="btn btn-warning w-100">
                                 <i class="fas fa-clock me-2"></i>
                                 Review Pending Materials
                                 <span class="badge bg-light text-dark ms-2">{{ stats.pending_materials }}</span>
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="{{ url_for('admin_doubts') }}" class="btn btn-info w-100">
+                            <a href="{{ url_for('main.admin_doubts') }}" class="btn btn-info w-100">
                                 <i class="fas fa-question-circle me-2"></i>
                                 Manage Doubts
                                 <span class="badge bg-light text-dark ms-2">{{ stats.unanswered_doubts }}</span>
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="{{ url_for('admin_ads') }}" class="btn btn-success w-100">
+                            <a href="{{ url_for('main.admin_ads') }}" class="btn btn-success w-100">
                                 <i class="fas fa-bullhorn me-2"></i>
                                 Create New Ad
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="{{ url_for('admin_analytics') }}" class="btn btn-primary w-100">
+                            <a href="{{ url_for('main.admin_analytics') }}" class="btn btn-primary w-100">
                                 <i class="fas fa-chart-bar me-2"></i>
                                 View Analytics
                             </a>

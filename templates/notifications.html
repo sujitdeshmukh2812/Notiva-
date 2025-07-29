@@ -61,15 +61,15 @@
                                 <!-- Action Buttons -->
                                 <div class="ms-3">
                                     {% if notification.type == 'upload_approved' %}
-                                        <a href="{{ url_for('browse') }}" class="btn btn-outline-primary btn-sm">
+                                        <a href="{{ url_for('main.browse') }}" class="btn btn-outline-primary btn-sm">
                                             <i class="fas fa-eye me-1"></i>View
                                         </a>
                                     {% elif notification.type == 'doubt_answered' %}
-                                        <a href="{{ url_for('doubts') }}" class="btn btn-outline-info btn-sm">
+                                        <a href="{{ url_for('main.doubts') }}" class="btn btn-outline-info btn-sm">
                                             <i class="fas fa-question-circle me-1"></i>View Answer
                                         </a>
                                     {% elif notification.type == 'new_material' %}
-                                        <a href="{{ url_for('browse') }}" class="btn btn-outline-primary btn-sm">
+                                        <a href="{{ url_for('main.browse') }}" class="btn btn-outline-primary btn-sm">
                                             <i class="fas fa-search me-1"></i>Browse
                                         </a>
                                     {% endif %}
@@ -146,16 +146,16 @@
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            <a href="{{ url_for('browse') }}" class="btn btn-outline-primary">
+                            <a href="{{ url_for('main.browse') }}" class="btn btn-outline-primary">
                                 <i class="fas fa-search me-2"></i>Browse Materials
                             </a>
-                            <a href="{{ url_for('upload') }}" class="btn btn-outline-success">
+                            <a href="{{ url_for('main.upload') }}" class="btn btn-outline-success">
                                 <i class="fas fa-upload me-2"></i>Upload Material
                             </a>
-                            <a href="{{ url_for('doubts') }}" class="btn btn-outline-info">
+                            <a href="{{ url_for('main.doubts') }}" class="btn btn-outline-info">
                                 <i class="fas fa-question-circle me-2"></i>Ask a Doubt
                             </a>
-                            <a href="{{ url_for('bookmarks') }}" class="btn btn-outline-warning">
+                            <a href="{{ url_for('main.bookmarks') }}" class="btn btn-outline-warning">
                                 <i class="fas fa-bookmark me-2"></i>My Bookmarks
                             </a>
                         </div>
@@ -180,13 +180,13 @@
                     </p>
                     
                     <div class="d-flex gap-3 justify-content-center flex-wrap">
-                        <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                        <a href="{{ url_for('main.upload') }}" class="btn btn-primary">
                             <i class="fas fa-upload me-2"></i>Upload Material
                         </a>
-                        <a href="{{ url_for('doubts') }}" class="btn btn-outline-primary">
+                        <a href="{{ url_for('main.doubts') }}" class="btn btn-outline-primary">
                             <i class="fas fa-question-circle me-2"></i>Ask a Doubt
                         </a>
-                        <a href="{{ url_for('browse') }}" class="btn btn-outline-secondary">
+                        <a href="{{ url_for('main.browse') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-search me-2"></i>Browse Materials
                         </a>
                     </div>

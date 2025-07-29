@@ -23,7 +23,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
                 <i class="fas fa-graduation-cap me-2"></i>Notiva
             </a>
             
@@ -34,28 +34,28 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
+                        <a class="nav-link" href="{{ url_for('main.index') }}">
                             <i class="fas fa-home me-1"></i>Home
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('browse') }}">
+                        <a class="nav-link" href="{{ url_for('main.browse') }}">
                             <i class="fas fa-search me-1"></i>Browse Materials
                         </a>
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('upload') }}">
+                        <a class="nav-link" href="{{ url_for('main.upload') }}">
                             <i class="fas fa-upload me-1"></i>Upload
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('bookmarks') }}">
+                        <a class="nav-link" href="{{ url_for('main.bookmarks') }}">
                             <i class="fas fa-bookmark me-1"></i>Bookmarks
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('doubts') }}">
+                        <a class="nav-link" href="{{ url_for('main.doubts') }}">
                             <i class="fas fa-question-circle me-1"></i>Doubts
                         </a>
                     </li>
@@ -79,26 +79,26 @@
                                 <i class="fas fa-cog me-1"></i>Admin
                             </a>
                             <ul class="dropdown-menu dropdown-menu-dark">
-                                <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.admin_dashboard') }}">
                                     <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_notes') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.admin_notes') }}">
                                     <i class="fas fa-file-alt me-2"></i>Notes Management
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_doubts') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.admin_doubts') }}">
                                     <i class="fas fa-question-circle me-2"></i>Doubts
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_ads') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.admin_ads') }}">
                                     <i class="fas fa-bullhorn me-2"></i>Ads Manager
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_academic') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.admin_academic') }}">
                                     <i class="fas fa-university me-2"></i>Academic Structure
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_users') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.admin_users') }}">
                                     <i class="fas fa-users me-2"></i>Users
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_analytics') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.admin_analytics') }}">
                                     <i class="fas fa-chart-bar me-2"></i>Analytics
                                 </a></li>
                             </ul>
@@ -117,19 +117,19 @@
                                     <i class="fas fa-cog me-2"></i>Settings
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.logout') }}">
                                     <i class="fas fa-sign-out-alt me-2"></i>Logout
                                 </a></li>
                             </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('login') }}">
+                            <a class="nav-link" href="{{ url_for('main.login') }}">
                                 <i class="fas fa-sign-in-alt me-1"></i>Login
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('register') }}">
+                            <a class="nav-link" href="{{ url_for('main.register') }}">
                                 <i class="fas fa-user-plus me-1"></i>Register
                             </a>
                         </li>
