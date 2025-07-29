@@ -3,17 +3,14 @@ services:
     name: notiva
     env: python
     region: oregon
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: gunicorn wsgi:app
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT"
     envVars:
-      - key: FLASK_APP
-        value: "wsgi:app"
       - key: FLASK_ENV
         value: production
-      - key: FLASK_CONFIG
-        value: production
-      - key: SECRET_KEY
+      - key: SESSION_SECRET
         generateValue: true
       - key: DATABASE_URL
         value: "postgresql://neondb_owner:npg_AkeGQ5IBMNy4dep-withered-hill-aing4uwt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
       - key: OPENAI_API_KEY
+        sync: false
