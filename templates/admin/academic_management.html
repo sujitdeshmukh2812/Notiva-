@@ -274,7 +274,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('create_course') }}" id="courseForm">
+            <form method="POST" action="{{ url_for('main.create_course') }}" id="courseForm">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="courseName" class="form-label">Course Name</label>
@@ -304,7 +304,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('create_year') }}" id="yearForm">
+            <form method="POST" action="{{ url_for('main.create_year') }}" id="yearForm">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="yearCourse" class="form-label">Course</label>
@@ -346,7 +346,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('create_semester') }}" id="semesterForm">
+            <form method="POST" action="{{ url_for('main.create_semester') }}" id="semesterForm">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="semesterCourse" class="form-label">Course</label>
@@ -395,7 +395,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('create_subject') }}" id="subjectForm">
+            <form method="POST" action="{{ url_for('main.create_subject') }}" id="subjectForm">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="subjectCourse" class="form-label">Course</label>

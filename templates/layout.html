@@ -65,7 +65,7 @@
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link position-relative" href="{{ url_for('notifications') }}">
+                            <a class="nav-link position-relative" href="{{ url_for('main.notifications') }}">
                                 <i class="fas fa-bell"></i>
                                 {% if unread_notifications > 0 %}
                                     <span class="notification-badge">{{ unread_notifications }}</span>

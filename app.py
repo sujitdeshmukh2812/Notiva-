@@ -24,6 +24,12 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
+    "pool_reset_on_return": "commit",
+    "connect_args": {
+        "sslmode": "require",
+        "connect_timeout": 10,
+        "application_name": "notiva_app"
+    }
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 

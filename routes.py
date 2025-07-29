@@ -51,24 +51,32 @@ def login():
             user = User.query.filter_by(email=email).first()
             current_app.logger.info(f"User found: {user is not None}")
             
-            if user and user.check_password(password):
-                login_user(user)
-                current_app.logger.info(f"Login successful for {email}")
-                flash(f'Welcome back, {user.name}!', 'success')
+            if user:
+                current_app.logger.info(f"User details - Email: {user.email}, Admin: {user.is_admin}")
+                password_check = user.check_password(password)
+                current_app.logger.info(f"Password check result: {password_check}")
                 
-                # Set a session variable to show the ad popup
-                from flask import session
-                session['show_ad_popup'] = True
-                
-                next_page = request.args.get('next')
-                if next_page:
-                    return redirect(next_page)
-                
-                if user.is_admin:
-                    return redirect(url_for('main.admin_dashboard'))
-                return redirect(url_for('main.index'))
+                if password_check:
+                    login_user(user)
+                    current_app.logger.info(f"Login successful for {email}")
+                    flash(f'Welcome back, {user.name}!', 'success')
+                    
+                    # Set a session variable to show the ad popup
+                    from flask import session
+                    session['show_ad_popup'] = True
+                    
+                    next_page = request.args.get('next')
+                    if next_page:
+                        return redirect(next_page)
+                    
+                    if user.is_admin:
+                        return redirect(url_for('main.admin_dashboard'))
+                    return redirect(url_for('main.index'))
+                else:
+                    current_app.logger.warning(f"Password check failed for {email}")
+                    flash('Invalid email or password.', 'error')
             else:
-                current_app.logger.warning(f"Failed login attempt for {email}")
+                current_app.logger.warning(f"No user found with email: {email}")
                 flash('Invalid email or password.', 'error')
         except Exception as e:
             current_app.logger.error(f"Error during login: {str(e)}")
@@ -430,6 +438,7 @@ def health_check():
 
 # Admin Routes
 @main.route('/admin')
+@main.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
     if not current_user.is_admin:
