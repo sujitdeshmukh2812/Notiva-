@@ -22,7 +22,7 @@ def create_admin():
         # Admin credentials
         admin_email = "sujitdeshmukh2812@gmail.com"
         admin_name = "Sujit Deshmukh"
-        admin_password = "admin123"
+        admin_password = "Sujit@2812"
 
         # Check if admin exists
         admin = User.query.filter_by(email=admin_email).first()
