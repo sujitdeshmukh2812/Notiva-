@@ -20,7 +20,7 @@ GitHub no longer accepts password authentication for Git operations. You need a 
 Run these commands in the Shell:
 
 ```bash
-# Set your GitHub username
+# Set your GitHub username and email
 git config --global user.name "sujitdeshmukh2812"
 git config --global user.email "sujitdeshmukh2812@gmail.com"
 
@@ -29,6 +29,23 @@ git remote set-url origin https://YOUR_TOKEN@github.com/sujitdeshmukh2812/Notiva
 ```
 
 Replace `YOUR_TOKEN` with the token you copied from GitHub.
+
+### Alternative Method - Use Username:Token Format
+If the above doesn't work, try:
+```bash
+git remote set-url origin https://sujitdeshmukh2812:YOUR_TOKEN@github.com/sujitdeshmukh2812/Notiva-.git
+```
+
+### Troubleshooting Invalid Authentication
+If you're still getting "invalid" errors:
+
+1. **Check token permissions**: Your token needs "repo" scope
+2. **Token expiry**: Make sure your token hasn't expired
+3. **Remove cached credentials**:
+```bash
+git config --global --unset credential.helper
+```
+4. **Try fresh token**: Generate a new token from GitHub
 
 ### 3. Push to GitHub
 ```bash
