@@ -9,33 +9,66 @@ pip install -r requirements.txt
 # Create database tables and admin user
 echo "🗄️ Setting up database..."
 python -c "
+import sys
+import traceback
 from app import app, db
 from models import User
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
-with app.app_context():
-    # Create all tables
-    db.create_all()
-    print('✅ Database tables created')
-    
-    # Create admin user
-    admin_email = 'sujitdeshmukh2812@gmail.com'
-    existing_admin = User.query.filter_by(email=admin_email).first()
-    
-    if not existing_admin:
+try:
+    with app.app_context():
+        print('🔧 Setting up database connection...')
+        
+        # Create all tables
+        db.create_all()
+        print('✅ Database tables created')
+        
+        # Force create admin user (delete existing if found)
+        admin_email = 'sujitdeshmukh2812@gmail.com'
+        admin_password = 'Sujit@2812'
+        
+        # Delete any existing admin to avoid conflicts
+        existing_admin = User.query.filter_by(email=admin_email).first()
+        if existing_admin:
+            print('🗑️ Removing existing admin account')
+            db.session.delete(existing_admin)
+            db.session.commit()
+        
+        # Create fresh admin user
+        print('👤 Creating admin account...')
         admin_user = User(
             name='Sujit Deshmukh',
             email=admin_email,
-            password_hash=generate_password_hash('Sujit@2812'),
             is_admin=True
         )
+        admin_user.set_password(admin_password)
         db.session.add(admin_user)
         db.session.commit()
-        print('✅ Admin account created')
-        print('Email: sujitdeshmukh2812@gmail.com')
-        print('Password: Sujit@2812')
-    else:
-        print('✅ Admin account already exists')
+        print('✅ Admin account created successfully')
+        
+        # Verify the admin account works
+        print('🔍 Verifying admin login...')
+        verify_admin = User.query.filter_by(email=admin_email).first()
+        if verify_admin:
+            password_works = verify_admin.check_password(admin_password)
+            print(f'📧 Email: {admin_email}')
+            print(f'🔑 Password: {admin_password}')
+            print(f'👑 Is Admin: {verify_admin.is_admin}')
+            print(f'✅ Login Test: {\"PASS\" if password_works else \"FAIL\"}')
+            
+            if password_works:
+                print('🎉 Admin setup completed successfully!')
+            else:
+                print('❌ Password verification failed!')
+                sys.exit(1)
+        else:
+            print('❌ Admin verification failed - user not found!')
+            sys.exit(1)
+
+except Exception as e:
+    print(f'❌ Database setup failed: {e}')
+    traceback.print_exc()
+    sys.exit(1)
 "
 
 echo "✅ Build completed successfully!"
