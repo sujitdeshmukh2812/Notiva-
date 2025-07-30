@@ -23,28 +23,31 @@ try:
         db.create_all()
         print('✅ Database tables created')
         
-        # Force create admin user (delete existing if found)
+        # Ensure admin user exists and works
         admin_email = 'sujitdeshmukh2812@gmail.com'
         admin_password = 'Sujit@2812'
         
-        # Delete any existing admin to avoid conflicts
+        # Check if admin exists
         existing_admin = User.query.filter_by(email=admin_email).first()
-        if existing_admin:
-            print('🗑️ Removing existing admin account')
-            db.session.delete(existing_admin)
-            db.session.commit()
         
-        # Create fresh admin user
-        print('👤 Creating admin account...')
-        admin_user = User(
-            name='Sujit Deshmukh',
-            email=admin_email,
-            is_admin=True
-        )
-        admin_user.set_password(admin_password)
-        db.session.add(admin_user)
-        db.session.commit()
-        print('✅ Admin account created successfully')
+        if existing_admin:
+            print('👤 Admin account found - updating password and admin status')
+            existing_admin.set_password(admin_password)
+            existing_admin.is_admin = True
+            existing_admin.name = 'Sujit Deshmukh'
+            db.session.commit()
+            print('✅ Admin account updated successfully')
+        else:
+            print('👤 Creating new admin account...')
+            admin_user = User(
+                name='Sujit Deshmukh',
+                email=admin_email,
+                is_admin=True
+            )
+            admin_user.set_password(admin_password)
+            db.session.add(admin_user)
+            db.session.commit()
+            print('✅ Admin account created successfully')
         
         # Verify the admin account works
         print('🔍 Verifying admin login...')

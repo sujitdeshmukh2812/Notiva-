@@ -48,20 +48,42 @@ FLASK_ENV=production
 ## Troubleshooting:
 If you still can't login after deployment:
 
-1. **Check Render Build Logs** for error messages
-2. **Verify Environment Variables** are set correctly
-3. **Database Connection** - ensure DATABASE_URL is correct
-4. **Manual Admin Creation** - Run this in Render console if needed:
+### Option 1: Check Render Console Logs
+Look for these messages in your Render deployment logs:
+- "🎉 Admin setup completed successfully!" = Good
+- "❌ Password verification failed!" = Problem
+
+### Option 2: Emergency Admin Fix
+If login still fails, run this in Render console:
+```bash
+python render_admin_fix.py
+```
+
+### Option 3: Manual Admin Fix in Render Console
 ```python
 from app import app, db
 from models import User
 
 with app.app_context():
-    admin = User(name='Sujit Deshmukh', email='sujitdeshmukh2812@gmail.com', is_admin=True)
-    admin.set_password('Sujit@2812')
-    db.session.add(admin)
-    db.session.commit()
+    admin = User.query.filter_by(email='sujitdeshmukh2812@gmail.com').first()
+    if admin:
+        admin.set_password('Sujit@2812')
+        admin.is_admin = True
+        db.session.commit()
+        print("Admin password fixed")
+    else:
+        new_admin = User(name='Sujit Deshmukh', email='sujitdeshmukh2812@gmail.com', is_admin=True)
+        new_admin.set_password('Sujit@2812')
+        db.session.add(new_admin)
+        db.session.commit()
+        print("New admin created")
 ```
+
+### Option 4: Verify Environment Variables
+Ensure these are set in Render:
+- `DATABASE_URL` = your PostgreSQL connection string
+- `SESSION_SECRET` = mBFhjBTsx8d-KIYKTkNUjNhH8QLT9hsoNAwAqAiOlPc
+- `FLASK_ENV` = production
 
 ## Success Indicators:
 - Build logs show "🎉 Admin setup completed successfully!"
